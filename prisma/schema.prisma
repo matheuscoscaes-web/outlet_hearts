@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(OPERATOR)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  stockLogs StockLog[]
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATOR
+}
+
+model Product {
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  shortDescription String
+  description      String           @db.Text
+  category         String
+  brand            String?
+  size             String?
+  color            String?
+  condition        ProductCondition
+  originalPrice    Decimal          @db.Decimal(10, 2)
+  outletPrice      Decimal          @db.Decimal(10, 2)
+  status           ProductStatus    @default(ACTIVE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  images       ProductImage[]
+  stock        Stock?
+  reservations Reservation[]
+  orderItems   OrderItem[]
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  SOLD_OUT
+}
+
+enum ProductCondition {
+  NEW
+  LIKE_NEW
+  STOCK_END
+  UNIQUE_PIECE
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  altText   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Stock {
+  id               String   @id @default(cuid())
+  productId        String   @unique
+  quantityTotal    Int      @default(0)
+  quantityReserved Int      @default(0)
+  quantitySold     Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  logs    StockLog[]
+}
+
+model StockLog {
+  id          String   @id @default(cuid())
+  stockId     String
+  adminUserId String?
+  reason      String
+  delta       Int
+  note        String?
+  createdAt   DateTime @default(now())
+
+  stock     Stock      @relation(fields: [stockId], references: [id])
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
+}
+
+model Reservation {
+  id          String            @id @default(cuid())
+  productId   String
+  quantity    Int
+  status      ReservationStatus @default(ACTIVE)
+  clientToken String
+  expiresAt   DateTime
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
+  order   Order?
+
+  @@index([status, expiresAt])
+  @@index([clientToken])
+}
+
+enum ReservationStatus {
+  ACTIVE
+  EXPIRED
+  CONVERTED
+  CANCELLED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  reservationId String      @unique
+  status        OrderStatus @default(PENDING)
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+  items       OrderItem[]
+  payment     Payment?
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  gatewayId       String?
+  gateway         String        @default("mercadopago")
+  status          PaymentStatus @default(PENDING)
+  amount          Decimal       @db.Decimal(10, 2)
+  method          String?
+  gatewayResponse Json?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REFUNDED
+}

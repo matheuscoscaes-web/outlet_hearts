@@ -1,0 +1,271 @@
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import Image from "next/image";
+import { Package, ShoppingBag, Clock, TrendingUp, Users, ArrowUpRight } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { SearchInput } from "@/components/admin/SearchInput";
+import { Suspense } from "react";
+
+export const revalidate = 0;
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  PENDING:   { label: "Aguardando", color: "bg-yellow-100 text-yellow-700" },
+  PAID:      { label: "Pago",       color: "bg-green-100 text-green-700"  },
+  CANCELLED: { label: "Cancelado",  color: "bg-red-100 text-red-700"      },
+  EXPIRED:   { label: "Expirado",   color: "bg-gray-100 text-gray-500"    },
+};
+
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+
+  const [
+    totalProducts,
+    activeReservations,
+    paidOrdersCount,
+    totalRevenue,
+    totalReservations,
+    cancelledOrders,
+  ] = await Promise.all([
+    prisma.product.count({ where: { status: "ACTIVE" } }),
+    prisma.reservation.count({ where: { status: "ACTIVE" } }),
+    prisma.order.count({ where: { status: "PAID" } }),
+    prisma.payment.aggregate({ where: { status: "APPROVED" }, _sum: { amount: true } }),
+    prisma.reservation.count(),
+    prisma.order.count({ where: { status: { in: ["CANCELLED", "EXPIRED"] } } }),
+  ]);
+
+  const revenueTotal = Number(totalRevenue._sum.amount ?? 0);
+  const avgTicket = paidOrdersCount > 0 ? revenueTotal / paidOrdersCount : 0;
+  const conversionRate = totalReservations > 0
+    ? Math.round((paidOrdersCount / totalReservations) * 100)
+    : 0;
+
+  // Produtos mais vendidos
+  const bestSellersRaw = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    where: { order: { status: "PAID" } },
+    _sum: { quantity: true, totalPrice: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: 8,
+  });
+
+  const bestSellerProducts = await prisma.product.findMany({
+    where: { id: { in: bestSellersRaw.map((b) => b.productId) } },
+    include: { images: { take: 1, orderBy: { order: "asc" } } },
+  });
+
+  const bestSellers = bestSellersRaw.map((b) => ({
+    ...b,
+    product: bestSellerProducts.find((p) => p.id === b.productId)!,
+  })).filter((b) => b.product);
+
+  // Pedidos com busca
+  const orders = await prisma.order.findMany({
+    where: q
+      ? {
+          OR: [
+            { customerName: { contains: q, mode: "insensitive" } },
+            { customerEmail: { contains: q, mode: "insensitive" } },
+            { items: { some: { product: { name: { contains: q, mode: "insensitive" } } } } },
+          ],
+        }
+      : undefined,
+    include: {
+      items: { include: { product: { include: { images: { take: 1 } } } } },
+      payment: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+
+  const stats = [
+    {
+      label: "Receita total",
+      value: formatCurrency(revenueTotal),
+      icon: TrendingUp,
+      color: "text-rose-600 bg-rose-50",
+      sub: `${paidOrdersCount} pedidos pagos`,
+    },
+    {
+      label: "Ticket médio",
+      value: formatCurrency(avgTicket),
+      icon: ArrowUpRight,
+      color: "text-green-600 bg-green-50",
+      sub: "por pedido pago",
+    },
+    {
+      label: "Reservas ativas",
+      value: activeReservations,
+      icon: Clock,
+      color: "text-amber-600 bg-amber-50",
+      sub: `${conversionRate}% taxa de conversão`,
+    },
+    {
+      label: "Produtos ativos",
+      value: totalProducts,
+      icon: Package,
+      color: "text-blue-600 bg-blue-50",
+      sub: `${cancelledOrders} pedidos cancelados`,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <Link
+          href="/admin/produtos/novo"
+          className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors"
+        >
+          <Package className="h-4 w-4" />
+          Novo produto
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon, color, sub }) => (
+          <div key={label} className="rounded-xl border border-gray-200 bg-white p-5">
+            <div className={`inline-flex rounded-lg p-2 ${color} mb-3`}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            <p className="text-xs text-gray-400 mt-1">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Produtos mais vendidos */}
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4 text-rose-600" />
+            <h2 className="font-semibold text-gray-900">Produtos mais vendidos</h2>
+          </div>
+          <Link href="/admin/pedidos" className="text-xs text-rose-600 hover:underline">Ver pedidos</Link>
+        </div>
+
+        {bestSellers.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-gray-400">Nenhuma venda registrada ainda.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+              <tr>
+                <th className="text-left px-5 py-3">#</th>
+                <th className="text-left px-5 py-3">Produto</th>
+                <th className="text-center px-5 py-3">Unidades vendidas</th>
+                <th className="text-right px-5 py-3">Receita gerada</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {bestSellers.map((b, i) => {
+                const img = b.product.images[0];
+                return (
+                  <tr key={b.productId} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 font-bold text-gray-400">#{i + 1}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-9 w-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          {img ? (
+                            <Image src={img.url} alt={b.product.name} fill className="object-cover" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-gray-300">📦</div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 line-clamp-1">{b.product.name}</p>
+                          <p className="text-xs text-gray-400">{b.product.category}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className="inline-flex items-center justify-center rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-600">
+                        {b._sum.quantity ?? 0} un.
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right font-semibold text-gray-900">
+                      {formatCurrency(Number(b._sum.totalPrice ?? 0))}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Pedidos com busca */}
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-rose-600" />
+            <h2 className="font-semibold text-gray-900">Pedidos</h2>
+            {q && <span className="text-xs text-gray-400">— buscando "{q}"</span>}
+          </div>
+          <div className="w-full sm:w-72">
+            <Suspense>
+              <SearchInput placeholder="Buscar por cliente, e-mail ou produto..." />
+            </Suspense>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+              <tr>
+                <th className="text-left px-5 py-3">ID</th>
+                <th className="text-left px-5 py-3">Cliente</th>
+                <th className="text-left px-5 py-3">Produto</th>
+                <th className="text-right px-5 py-3">Total</th>
+                <th className="text-center px-5 py-3">Status</th>
+                <th className="text-right px-5 py-3">Data</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {orders.map((order) => {
+                const st = STATUS_LABELS[order.status] ?? { label: order.status, color: "bg-gray-100 text-gray-500" };
+                return (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 font-mono text-xs text-gray-400">
+                      #{order.id.slice(-8).toUpperCase()}
+                    </td>
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-gray-900">{order.customerName}</p>
+                      <p className="text-xs text-gray-400">{order.customerEmail}</p>
+                    </td>
+                    <td className="px-5 py-3 text-gray-600 max-w-[180px] truncate">
+                      {order.items[0]?.product.name ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-right font-bold text-rose-600">
+                      {formatCurrency(Number(order.totalAmount))}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>
+                        {st.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs text-gray-400">
+                      {new Date(order.createdAt).toLocaleDateString("pt-BR")}
+                    </td>
+                  </tr>
+                );
+              })}
+              {orders.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-gray-400">
+                    {q ? `Nenhum resultado para "${q}"` : "Nenhum pedido ainda."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
