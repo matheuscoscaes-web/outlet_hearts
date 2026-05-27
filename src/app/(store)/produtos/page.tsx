@@ -10,15 +10,7 @@ type ProductWithRelations = Product & {
   stock: Stock | null;
 };
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ categoria?: string }>;
-}) {
-  const { categoria } = await searchParams;
-
-  let mapped: typeof MOCK_PRODUCTS = [];
-
+async function getProducts(categoria?: string) {
   try {
     const { prisma } = await import("@/lib/prisma");
     const products = await prisma.product.findMany({
@@ -29,7 +21,7 @@ export default async function ProductsPage({
       include: { images: { orderBy: { order: "asc" } }, stock: true },
       orderBy: { createdAt: "desc" },
     });
-    mapped = (products as ProductWithRelations[]).map((p) => ({
+    return (products as ProductWithRelations[]).map((p) => ({
       ...p,
       originalPrice: Number(p.originalPrice),
       outletPrice: Number(p.outletPrice),
@@ -38,10 +30,19 @@ export default async function ProductsPage({
         : 0,
     }));
   } catch {
-    mapped = categoria
+    return categoria
       ? MOCK_PRODUCTS.filter((p) => p.category === categoria)
       : MOCK_PRODUCTS;
   }
+}
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ categoria?: string }>;
+}) {
+  const { categoria } = await searchParams;
+  const mapped = await getProducts(categoria);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
