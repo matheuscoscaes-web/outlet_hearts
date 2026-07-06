@@ -46,11 +46,11 @@ export function OutletBanner() {
   const s = String(seconds % 60).padStart(2, "0");
 
   return (
-    <div className="bg-brand-800 text-white">
-      <div className="mx-auto max-w-7xl px-4 py-1.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium">
-        <Flame className="h-3.5 w-3.5 text-brand-300 shrink-0" />
+    <div className="w-full bg-brand-800 text-white">
+      <div className="mx-auto max-w-7xl px-4 py-2.5 sm:py-3 flex items-center justify-center gap-2.5 text-sm sm:text-base font-medium">
+        <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-brand-300 shrink-0" />
         <span className="truncate">Outlet relâmpago termina em</span>
-        <span className="font-mono font-bold tabular-nums tracking-wide">{h}:{m}:{s}</span>
+        <span className="font-mono font-bold tabular-nums tracking-wide text-base sm:text-lg">{h}:{m}:{s}</span>
       </div>
     </div>
   );

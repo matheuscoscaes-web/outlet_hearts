@@ -6,8 +6,10 @@ import { ShieldCheck, Truck, CreditCard } from "lucide-react";
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar />
-      <OutletBanner />
+      <div className="sticky top-0 z-50">
+        <Navbar />
+        <OutletBanner />
+      </div>
       <main className="min-h-screen bg-gray-50">{children}</main>
       <footer className="border-t border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:py-10">
