@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { OrderAddressModal } from "@/components/admin/OrderAddressModal";
+import { ShippingLabelButton } from "@/components/admin/ShippingLabelButton";
 import type { Order, OrderItem, Product, ProductImage, Payment } from "@prisma/client";
 
 export const revalidate = 0;
@@ -68,7 +69,7 @@ export default async function AdminOrdersPage({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-x-auto">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Pedido</th>
@@ -112,7 +113,7 @@ export default async function AdminOrdersPage({
                     {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-2">
                       <OrderAddressModal
                         customerName={order.customerName}
                         customerPhone={order.customerPhone}
@@ -124,6 +125,12 @@ export default async function AdminOrdersPage({
                         shippingNeighborhood={order.shippingNeighborhood}
                         shippingCity={order.shippingCity}
                         shippingState={order.shippingState}
+                      />
+                      <ShippingLabelButton
+                        orderId={order.id}
+                        canShip={order.status === "PAID"}
+                        existingLabelUrl={order.meLabelUrl}
+                        existingServiceName={order.meServiceName}
                       />
                     </div>
                   </td>

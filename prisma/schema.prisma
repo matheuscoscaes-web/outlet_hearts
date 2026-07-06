@@ -144,6 +144,12 @@ model Order {
   shippingCity         String?
   shippingState        String?
 
+  meCartId      String?
+  meServiceId   Int?
+  meServiceName String?
+  meLabelUrl    String?
+  meGeneratedAt DateTime?
+
   totalAmount   Decimal     @db.Decimal(10, 2)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
