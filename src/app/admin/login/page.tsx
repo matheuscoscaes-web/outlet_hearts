@@ -17,31 +17,36 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/admin/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      setError(data.error ?? "Credenciais inválidas");
+      if (!res.ok) {
+        setError(data?.error ?? `Erro ao entrar (status ${res.status})`);
+        return;
+      }
+
+      router.push("/admin");
+      router.refresh();
+    } catch {
+      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/admin");
-    router.refresh();
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <Heart className="h-7 w-7 fill-rose-600 text-rose-600" />
+          <Heart className="h-7 w-7 fill-brand-600 text-brand-600" />
           <span className="text-xl font-bold text-gray-900">
-            Outlet<span className="text-rose-600">Hearts</span>
+            Outlet<span className="text-brand-600">Hearts</span>
             <span className="ml-2 text-sm font-normal text-gray-500">Admin</span>
           </span>
         </div>

@@ -14,7 +14,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { reservationId, customerName, customerEmail, customerPhone } = parsed.data;
+  const {
+    reservationId,
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerCpf,
+    shippingCep,
+    shippingStreet,
+    shippingNumber,
+    shippingComplement,
+    shippingNeighborhood,
+    shippingCity,
+    shippingState,
+  } = parsed.data;
 
   try {
     const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -36,6 +49,14 @@ export async function POST(req: NextRequest) {
           customerName,
           customerEmail,
           customerPhone,
+          customerCpf: customerCpf.replace(/\D/g, ""),
+          shippingCep: shippingCep.replace(/\D/g, ""),
+          shippingStreet,
+          shippingNumber,
+          shippingComplement,
+          shippingNeighborhood,
+          shippingCity,
+          shippingState: shippingState.toUpperCase(),
           totalAmount,
           items: {
             create: {

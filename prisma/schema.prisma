@@ -6,6 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
+model OutletTimer {
+  id              String    @id @default("singleton")
+  startedAt       DateTime?
+  durationMinutes Int       @default(180)
+  updatedAt       DateTime  @updatedAt
+}
+
 model AdminUser {
   id           String    @id @default(cuid())
   name         String
@@ -127,6 +134,16 @@ model Order {
   customerName  String
   customerEmail String
   customerPhone String?
+  customerCpf   String?
+
+  shippingCep          String?
+  shippingStreet       String?
+  shippingNumber       String?
+  shippingComplement   String?
+  shippingNeighborhood String?
+  shippingCity         String?
+  shippingState        String?
+
   totalAmount   Decimal     @db.Decimal(10, 2)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

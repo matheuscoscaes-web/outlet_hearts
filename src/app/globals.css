@@ -1,5 +1,57 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-50: #faf1e0;
+  --color-brand-100: #f2ddac;
+  --color-brand-300: #c98f1f;
+  --color-brand-400: #a97511;
+  --color-brand-500: #93630c;
+  --color-brand-600: #7a5108;
+  --color-brand-700: #5f3f06;
+  --color-brand-800: #472e04;
+  --color-brand-900: #301f03;
+
+  --animate-fade-in: fade-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@theme inline {
+  --font-heading: var(--font-serif), Georgia, "Times New Roman", serif;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Esconde a scrollbar em listas de chips com rolagem horizontal no mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Respeita a safe area do iOS na barra fixa de compra no mobile */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+}
+
+/* iOS dá zoom automático ao focar em campos com fonte menor que 16px */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }

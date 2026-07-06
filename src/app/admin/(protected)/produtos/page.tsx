@@ -41,30 +41,31 @@ export default async function AdminProductsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Produtos</h1>
         <Link href="/admin/produtos/novo">
           <Button>
             <Plus className="h-4 w-4" />
-            Novo produto
+            <span className="hidden sm:inline">Novo produto</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </Link>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => (
           <Link
             key={tab.value}
             href={`/admin/produtos${tab.value ? `?status=${tab.value}` : ""}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${status === tab.value || (!status && !tab.value) ? "bg-rose-600 text-white border-rose-600" : "border-gray-300 text-gray-700 hover:border-rose-400"}`}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${status === tab.value || (!status && !tab.value) ? "bg-brand-600 text-white border-brand-600" : "border-gray-300 text-gray-700 hover:border-brand-400"}`}
           >
             {tab.label}
           </Link>
         ))}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Produto</th>
@@ -98,7 +99,7 @@ export default async function AdminProductsPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold text-rose-600">
+                  <td className="px-4 py-3 text-right font-semibold text-brand-600">
                     {formatCurrency(Number(p.outletPrice))}
                   </td>
                   <td className="px-4 py-3 text-right">

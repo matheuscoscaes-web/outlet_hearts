@@ -31,7 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
     totalReserved > 0;
 
   return (
-    <div className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+    <div className="group relative flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
       {/* Badges */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         <Badge variant="discount">-{discount}% OFF</Badge>
@@ -46,7 +46,7 @@ export function ProductCard({ product }: { product: Product }) {
             src={image.url}
             alt={image.altText ?? product.name}
             fill
-            className={`object-cover transition-transform group-hover:scale-105 ${isSoldOut ? "grayscale opacity-60" : ""}`}
+            className={`object-cover transition-transform duration-300 group-hover:scale-105 ${isSoldOut ? "grayscale opacity-60" : ""}`}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
@@ -60,22 +60,22 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
 
       {/* Info */}
-      <div className="flex flex-col gap-2 p-3">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         <Link href={`/produto/${product.slug}`}>
-          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-rose-600 transition-colors">
+          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-brand-600 transition-colors min-h-[2.5em]">
             {product.name}
           </h3>
         </Link>
         <div className="flex flex-col">
           <span className="text-xs text-gray-400 line-through">{formatCurrency(product.originalPrice)}</span>
-          <span className="text-lg font-bold text-rose-600">{formatCurrency(product.outletPrice)}</span>
+          <span className="text-lg font-bold text-brand-600 tabular-nums">{formatCurrency(product.outletPrice)}</span>
         </div>
         {!isSoldOut && (
           <p className="text-xs text-gray-500">
             {product.quantityAvailable} {product.quantityAvailable === 1 ? "unidade" : "unidades"} disponíveis
           </p>
         )}
-        <Link href={`/produto/${product.slug}`}>
+        <Link href={`/produto/${product.slug}`} className="mt-auto pt-1">
           <Button
             className="w-full"
             disabled={isSoldOut}

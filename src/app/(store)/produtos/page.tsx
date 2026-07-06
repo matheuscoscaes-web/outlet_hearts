@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProductCard } from "@/components/store/ProductCard";
 import { calcAvailable, CATEGORY_OPTIONS } from "@/lib/utils";
 import { MOCK_PRODUCTS } from "@/lib/mock-data";
@@ -46,29 +47,29 @@ export default async function ProductsPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Todos os produtos</h1>
-      <p className="text-gray-500 mb-6 text-sm">{mapped.length} produtos encontrados</p>
+      <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-gray-900 mb-1">Todos os produtos</h1>
+      <p className="text-gray-500 mb-5 sm:mb-6 text-sm">{mapped.length} produtos encontrados</p>
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <a
+      <div className="mb-6 -mx-4 flex gap-2 overflow-x-auto scrollbar-hide px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+        <Link
           href="/produtos"
-          className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${!categoria ? "bg-rose-600 text-white border-rose-600" : "border-gray-300 text-gray-700 hover:border-rose-400"}`}
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors active:scale-[0.97] ${!categoria ? "bg-brand-600 text-white border-brand-600" : "border-gray-300 text-gray-700 hover:border-brand-400"}`}
         >
           Todos
-        </a>
+        </Link>
         {CATEGORY_OPTIONS.map((cat) => (
-          <a
+          <Link
             key={cat}
             href={`/produtos?categoria=${encodeURIComponent(cat)}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${categoria === cat ? "bg-rose-600 text-white border-rose-600" : "border-gray-300 text-gray-700 hover:border-rose-400"}`}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors active:scale-[0.97] ${categoria === cat ? "bg-brand-600 text-white border-brand-600" : "border-gray-300 text-gray-700 hover:border-brand-400"}`}
           >
             {cat}
-          </a>
+          </Link>
         ))}
       </div>
 
       {mapped.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {mapped.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}

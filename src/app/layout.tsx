@@ -1,8 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "OutletHearts — Outlet com Estoque Limitado",
@@ -14,10 +20,16 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#7a4506",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className="h-full">
-      <body className={`${inter.className} min-h-full bg-gray-50`}>{children}</body>
+    <html lang="pt-BR" className={`h-full ${fraunces.variable}`}>
+      <body className={`${inter.className} min-h-full bg-gray-50 antialiased`}>{children}</body>
     </html>
   );
 }

@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
+import { expireReservations } from "@/lib/expire-reservations";
 import type { Prisma } from "@prisma/client";
 
-const RESERVATION_MINUTES = 10;
+const RESERVATION_MINUTES = 6;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       return newReservation;
     });
 
+    after(expireReservations);
     return NextResponse.json(reservation, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "UNKNOWN";

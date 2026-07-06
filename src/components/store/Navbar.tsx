@@ -5,22 +5,29 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-3">
-          <Image src="/logo.png" alt="OutletHearts" width={52} height={52} className="object-contain" priority />
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold tracking-wide" style={{ color: "#8B6008" }}>Hearts Couro</span>
-            <span className="text-[10px] font-light tracking-[0.2em] uppercase" style={{ color: "#B08030" }}>couro legítimo</span>
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <Image src="/logo.png" alt="OutletHearts" width={44} height={44} className="object-contain sm:h-[52px] sm:w-[52px]" priority />
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="font-heading text-sm sm:text-base font-semibold tracking-wide text-brand-700 truncate">Hearts Couro</span>
+            <span className="text-[9px] sm:text-[10px] font-light tracking-[0.2em] uppercase text-brand-500">couro legítimo</span>
           </div>
         </Link>
         <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          <Link href="/produtos" className="hover:text-rose-600 transition-colors">Todos os produtos</Link>
+          <Link href="/produtos" className="hover:text-brand-600 transition-colors">Todos os produtos</Link>
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/produtos"
+            className="sm:hidden text-xs font-medium text-brand-600 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 transition-colors"
+          >
+            Produtos
+          </Link>
           <a
             href="https://wa.me/5521995341204"
             target="_blank"
             rel="noopener noreferrer"
             title="WhatsApp"
+            aria-label="Falar no WhatsApp"
             className="text-gray-500 hover:text-green-500 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -32,7 +39,8 @@ export function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             title="Instagram"
-            className="text-gray-500 hover:text-pink-500 transition-colors"
+            aria-label="Ver Instagram"
+            className="text-gray-500 hover:text-brand-500 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>

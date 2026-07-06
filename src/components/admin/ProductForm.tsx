@@ -186,19 +186,19 @@ export function ProductForm({ initialData }: ProductFormProps) {
             rows={5}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder="Descreva o produto com detalhes..."
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Categoria *</label>
             <select
               required
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Selecione...</option>
               {CATEGORY_OPTIONS.map((c) => <option key={c}>{c}</option>)}
@@ -206,7 +206,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input label="Marca" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} placeholder="Nike" />
           <Input label="Tamanho" value={form.size} onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))} placeholder="M / 42" />
           <Input label="Cor" value={form.color} onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))} placeholder="Azul" />
@@ -216,7 +216,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
       {/* Preços e estoque */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Preços e estoque</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Preço original (R$) *"
             type="number"
@@ -277,7 +277,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             </div>
           ))}
           {previews.map((url, i) => (
-            <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-dashed border-rose-300">
+            <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-dashed border-brand-300">
               <Image src={url} alt="" fill className="object-cover" />
               <button
                 type="button"
@@ -291,7 +291,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex h-20 w-20 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 hover:border-rose-400 hover:text-rose-500 transition-colors"
+            className="flex h-20 w-20 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-500 transition-colors"
           >
             <Upload className="h-5 w-5" />
             <span className="text-xs mt-1">Adicionar</span>
@@ -321,7 +321,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
                 value={opt.value}
                 checked={form.status === opt.value}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                className="text-rose-600"
+                className="text-brand-600"
               />
               <span className="text-sm font-medium text-gray-700">{opt.label}</span>
             </label>

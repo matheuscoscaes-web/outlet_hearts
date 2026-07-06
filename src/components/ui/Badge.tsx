@@ -4,7 +4,7 @@ interface BadgeProps {
 }
 
 const variants = {
-  discount: "bg-rose-600 text-white",
+  discount: "bg-brand-600 text-white",
   warning: "bg-amber-500 text-white",
   sold: "bg-gray-500 text-white",
   reserved: "bg-orange-500 text-white",

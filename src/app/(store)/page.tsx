@@ -2,6 +2,7 @@ import { ProductCard } from "@/components/store/ProductCard";
 import { calcAvailable } from "@/lib/utils";
 import { MOCK_PRODUCTS } from "@/lib/mock-data";
 import Link from "next/link";
+import { Timer, ShieldCheck, Flame } from "lucide-react";
 import type { Product, ProductImage, Stock } from "@prisma/client";
 
 export const revalidate = 30;
@@ -38,22 +39,40 @@ export default async function HomePage() {
   const soldOut = mapped.filter((p) => p.status === "SOLD_OUT");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-10 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 p-8 text-white">
-        <h1 className="text-3xl font-bold md:text-4xl">Outlet com Estoque Limitado</h1>
-        <p className="mt-2 text-rose-100 text-lg">
-          Preços imperdíveis · Quem chegar primeiro leva · Reserva automática de 10 minutos
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+      <div className="mb-8 sm:mb-10 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-brand-800 px-5 py-8 text-white sm:px-10 sm:py-12">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+          <Flame className="h-3.5 w-3.5" />
+          Outlet oficial
+        </span>
+        <h1 className="font-heading mt-3 text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl">
+          Peças de couro legítimo,<br className="hidden sm:block" /> preço de outlet
+        </h1>
+        <p className="mt-3 max-w-xl text-brand-100 text-base sm:text-lg">
+          Estoque limitado e conferido peça a peça. Quem chegar primeiro leva — reservamos seu item por 6 minutos no checkout.
         </p>
-        <div className="mt-4 flex gap-3 text-sm flex-wrap">
-          <span className="rounded-full bg-white/20 px-3 py-1">🔥 {available.length} produtos disponíveis</span>
-          <span className="rounded-full bg-white/20 px-3 py-1">⚡ Frete calculado no checkout</span>
+        <div className="mt-5 flex flex-wrap gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+            <Flame className="h-3.5 w-3.5" /> {available.length} produtos disponíveis
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+            <Timer className="h-3.5 w-3.5" /> Reserva de 6 minutos
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> Pagamento seguro
+          </span>
         </div>
       </div>
 
       {available.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-bold text-gray-900">Disponíveis agora</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="font-heading text-xl sm:text-2xl font-semibold text-gray-900">Disponíveis agora</h2>
+            <Link href="/produtos" className="text-sm text-brand-600 hover:underline font-medium whitespace-nowrap">
+              Ver todos →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {available.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -62,9 +81,9 @@ export default async function HomePage() {
       )}
 
       {soldOut.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-bold text-gray-400">Esgotados</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 opacity-60">
+        <section className="mt-10 sm:mt-12">
+          <h2 className="font-heading mb-4 text-xl font-semibold text-gray-400">Esgotados</h2>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4 opacity-60">
             {soldOut.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -78,12 +97,6 @@ export default async function HomePage() {
           <p className="text-lg font-medium">Nenhum produto disponível no momento.</p>
         </div>
       )}
-
-      <div className="mt-6 text-right">
-        <Link href="/produtos" className="text-sm text-rose-600 hover:underline font-medium">
-          Ver todos os produtos →
-        </Link>
-      </div>
     </div>
   );
 }

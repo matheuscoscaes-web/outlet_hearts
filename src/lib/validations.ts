@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCPF } from "./utils";
 
 export const createReservationSchema = z.object({
   productId: z.string().min(1),
@@ -11,6 +12,16 @@ export const createOrderSchema = z.object({
   customerName: z.string().min(2).max(100),
   customerEmail: z.string().email(),
   customerPhone: z.string().optional(),
+  customerCpf: z.string().refine(isValidCPF, "CPF inválido"),
+  shippingCep: z
+    .string()
+    .regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
+  shippingStreet: z.string().min(2, "Endereço obrigatório").max(200),
+  shippingNumber: z.string().min(1, "Número obrigatório").max(20),
+  shippingComplement: z.string().max(100).optional(),
+  shippingNeighborhood: z.string().min(2, "Bairro obrigatório").max(100),
+  shippingCity: z.string().min(2, "Cidade obrigatória").max(100),
+  shippingState: z.string().length(2, "UF inválida"),
 });
 
 export const adminLoginSchema = z.object({

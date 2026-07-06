@@ -30,7 +30,7 @@ export function SearchInput({ placeholder = "Buscar..." }: { placeholder?: strin
         defaultValue={searchParams.get("q") ?? ""}
         onChange={handleChange}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+        className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
     </div>
   );
