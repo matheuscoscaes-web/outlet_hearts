@@ -56,10 +56,10 @@ interface ShippingAddress {
 
 function defaultPackage() {
   return {
-    weight: Number(process.env.MELHORENVIO_DEFAULT_WEIGHT_KG ?? "0.3"),
-    length: Number(process.env.MELHORENVIO_DEFAULT_LENGTH_CM ?? "20"),
-    width: Number(process.env.MELHORENVIO_DEFAULT_WIDTH_CM ?? "15"),
-    height: Number(process.env.MELHORENVIO_DEFAULT_HEIGHT_CM ?? "10"),
+    weight: Number(process.env.MELHORENVIO_DEFAULT_WEIGHT_KG ?? "1"),
+    length: Number(process.env.MELHORENVIO_DEFAULT_LENGTH_CM ?? "32"),
+    width: Number(process.env.MELHORENVIO_DEFAULT_WIDTH_CM ?? "30"),
+    height: Number(process.env.MELHORENVIO_DEFAULT_HEIGHT_CM ?? "12"),
   };
 }
 
