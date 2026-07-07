@@ -64,6 +64,10 @@ function CheckoutContent() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
 
+  const [shippingQuote, setShippingQuote] = useState<{ serviceName: string; price: number } | null>(null);
+  const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
+  const [shippingQuoteError, setShippingQuoteError] = useState("");
+
   const [phase, setPhase] = useState<"form" | "payment" | "pix">("form");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
@@ -100,6 +104,10 @@ function CheckoutContent() {
 
     setCepLoading(true);
     setCepError("");
+    setShippingQuote(null);
+    setShippingQuoteError("");
+
+    let state = form.state;
 
     try {
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
@@ -110,23 +118,52 @@ function CheckoutContent() {
         return;
       }
 
+      state = data.uf || form.state;
+
       setForm((f) => ({
         ...f,
         street: data.logradouro || f.street,
         neighborhood: data.bairro || f.neighborhood,
         city: data.localidade || f.city,
-        state: data.uf || f.state,
+        state,
       }));
     } catch {
       setCepError("Não foi possível buscar o CEP. Preencha manualmente.");
+      return;
     } finally {
       setCepLoading(false);
+    }
+
+    if (!state || !reservation) return;
+
+    setShippingQuoteLoading(true);
+    try {
+      const quoteRes = await fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservationId: reservation.id, cep: digits, state }),
+      });
+      const quoteData = await quoteRes.json();
+      if (!quoteRes.ok) {
+        setShippingQuoteError(quoteData.error ?? "Não foi possível calcular o frete pra esse CEP.");
+      } else {
+        setShippingQuote({ serviceName: quoteData.serviceName, price: quoteData.price });
+      }
+    } catch {
+      setShippingQuoteError("Não foi possível calcular o frete. Tente novamente.");
+    } finally {
+      setShippingQuoteLoading(false);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!reservation) return;
+
+    if (deliveryMethod === "SHIPPING" && !shippingQuote) {
+      setError("Aguarde o cálculo do frete (ou confira o CEP) antes de continuar.");
+      return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -255,7 +292,10 @@ function CheckoutContent() {
     );
   }
 
-  const total = Number(reservation.product.outletPrice) * reservation.quantity;
+  const productTotal = Number(reservation.product.outletPrice) * reservation.quantity;
+  const shippingCost = deliveryMethod === "SHIPPING" ? shippingQuote?.price ?? 0 : 0;
+  const total = productTotal + shippingCost;
+  const shippingPending = deliveryMethod === "SHIPPING" && !shippingQuote;
 
   const orderSummary = (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -274,11 +314,25 @@ function CheckoutContent() {
         <div>
           <p className="font-medium text-gray-900 text-sm">{reservation.product.name}</p>
           <p className="text-xs text-gray-500">Qty: {reservation.quantity}</p>
-          <p className="font-bold text-brand-600 mt-1">{formatCurrency(total)}</p>
+          <p className="font-bold text-brand-600 mt-1">{formatCurrency(productTotal)}</p>
         </div>
       </div>
-      <div className="border-t border-gray-100 mt-4 pt-4">
-        <div className="flex justify-between text-sm font-bold">
+      <div className="border-t border-gray-100 mt-4 pt-4 space-y-1.5">
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>Produto</span>
+          <span>{formatCurrency(productTotal)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>Frete{shippingQuote ? ` (${shippingQuote.serviceName})` : ""}</span>
+          <span>
+            {deliveryMethod === "PICKUP"
+              ? "Retirada"
+              : shippingQuote
+              ? formatCurrency(shippingQuote.price)
+              : "—"}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-100">
           <span>Total</span>
           <span className="text-brand-600">{formatCurrency(total)}</span>
         </div>
@@ -472,13 +526,24 @@ function CheckoutContent() {
                   required
                   inputMode="numeric"
                   value={form.cep}
-                  onChange={(e) => setForm((f) => ({ ...f, cep: formatCEP(e.target.value) }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, cep: formatCEP(e.target.value) }));
+                    setShippingQuote(null);
+                    setShippingQuoteError("");
+                  }}
                   onBlur={handleCepBlur}
                   placeholder="00000-000"
                   maxLength={9}
                 />
                 {cepLoading && <p className="text-xs text-gray-400 mt-1">Buscando endereço...</p>}
                 {cepError && <p className="text-xs text-red-600 mt-1">{cepError}</p>}
+                {shippingQuoteLoading && <p className="text-xs text-gray-400 mt-1">Calculando frete...</p>}
+                {shippingQuoteError && <p className="text-xs text-red-600 mt-1">{shippingQuoteError}</p>}
+                {shippingQuote && (
+                  <p className="text-xs text-green-700 mt-1">
+                    Frete {shippingQuote.serviceName}: {formatCurrency(shippingQuote.price)}
+                  </p>
+                )}
               </div>
 
               <Input
@@ -541,8 +606,20 @@ function CheckoutContent() {
             </div>
           )}
 
-          <Button type="submit" size="lg" loading={submitting} className="w-full">
-            {submitting ? "Processando..." : `Continuar para o pagamento · ${formatCurrency(total)}`}
+          <Button
+            type="submit"
+            size="lg"
+            loading={submitting}
+            disabled={shippingPending}
+            className="w-full"
+          >
+            {submitting
+              ? "Processando..."
+              : shippingQuoteLoading
+              ? "Calculando frete..."
+              : shippingPending
+              ? "Informe o CEP para continuar"
+              : `Continuar para o pagamento · ${formatCurrency(total)}`}
           </Button>
 
           <p className="text-xs text-center text-gray-500">

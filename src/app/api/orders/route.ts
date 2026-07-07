@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validations";
+import { calculateRequiredShipping } from "@/lib/melhorenvio";
 import type { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
@@ -32,18 +33,38 @@ export async function POST(req: NextRequest) {
   } = parsed.data;
 
   try {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { product: true },
+    });
+
+    if (!reservation) throw new Error("RESERVATION_NOT_FOUND");
+    if (reservation.status !== "ACTIVE") throw new Error("RESERVATION_INVALID");
+    if (reservation.expiresAt < new Date()) throw new Error("RESERVATION_EXPIRED");
+
+    const unitPrice = Number(reservation.product.outletPrice);
+    const productTotal = unitPrice * reservation.quantity;
+
+    // Frete calculado no servidor (nunca confia em valor vindo do cliente):
+    // Sedex pra RJ, PAC pro resto do Brasil. Retirada na loja não tem frete.
+    let shippingCost = 0;
+    let shippingServiceName: string | null = null;
+    if (deliveryMethod === "SHIPPING") {
+      const quote = await calculateRequiredShipping(shippingCep!, shippingState!, productTotal);
+      shippingCost = quote.price;
+      shippingServiceName = quote.serviceName;
+    }
+
+    const totalAmount = productTotal + shippingCost;
+
     const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const reservation = await tx.reservation.findUnique({
-        where: { id: reservationId },
-        include: { product: true },
-      });
-
-      if (!reservation) throw new Error("RESERVATION_NOT_FOUND");
-      if (reservation.status !== "ACTIVE") throw new Error("RESERVATION_INVALID");
-      if (reservation.expiresAt < new Date()) throw new Error("RESERVATION_EXPIRED");
-
-      const unitPrice = Number(reservation.product.outletPrice);
-      const totalAmount = unitPrice * reservation.quantity;
+      // Reconfirma a reserva dentro da transação (o cálculo de frete acima
+      // envolve uma chamada externa, que pode demorar e deixar a reserva
+      // expirar nesse meio-tempo).
+      const freshReservation = await tx.reservation.findUnique({ where: { id: reservationId } });
+      if (!freshReservation) throw new Error("RESERVATION_NOT_FOUND");
+      if (freshReservation.status !== "ACTIVE") throw new Error("RESERVATION_INVALID");
+      if (freshReservation.expiresAt < new Date()) throw new Error("RESERVATION_EXPIRED");
 
       const newOrder = await tx.order.create({
         data: {
@@ -61,14 +82,16 @@ export async function POST(req: NextRequest) {
           shippingNeighborhood: deliveryMethod === "SHIPPING" ? shippingNeighborhood : undefined,
           shippingCity: deliveryMethod === "SHIPPING" ? shippingCity : undefined,
           shippingState: deliveryMethod === "SHIPPING" ? shippingState!.toUpperCase() : undefined,
+          shippingService: shippingServiceName,
+          shippingCost,
           totalAmount,
           items: {
             create: {
-              productId: reservation.productId,
-              productVariantId: reservation.productVariantId,
-              quantity: reservation.quantity,
+              productId: freshReservation.productId,
+              productVariantId: freshReservation.productVariantId,
+              quantity: freshReservation.quantity,
               unitPrice,
-              totalPrice: totalAmount,
+              totalPrice: productTotal,
             },
           },
           payment: {
@@ -94,6 +117,7 @@ export async function POST(req: NextRequest) {
     if (message === "RESERVATION_EXPIRED")
       return NextResponse.json({ error: "Reserva expirada" }, { status: 410 });
     console.error("[POST /api/orders]", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    const message2 = err instanceof Error ? err.message : "Erro interno";
+    return NextResponse.json({ error: message2.startsWith("Frete") ? message2 : "Erro interno" }, { status: 500 });
   }
 }

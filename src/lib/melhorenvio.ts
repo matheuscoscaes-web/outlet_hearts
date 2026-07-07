@@ -85,6 +85,33 @@ export async function calculateShipping(toCep: string, insuranceValue: number): 
   return quotes.filter((q) => !q.error);
 }
 
+// IDs fixos dos Correios no Melhor Envio: 1 = PAC, 2 = SEDEX.
+const SEDEX_SERVICE_ID = 2;
+const PAC_SERVICE_ID = 1;
+
+/**
+ * Frete padrão da loja: Sedex para o Rio de Janeiro (estado inteiro),
+ * PAC para o resto do Brasil. Usado tanto na cotação exibida no
+ * checkout quanto no cálculo autoritativo ao criar o pedido.
+ */
+export async function calculateRequiredShipping(
+  toCep: string,
+  toState: string,
+  insuranceValue: number
+): Promise<{ serviceId: number; serviceName: string; price: number }> {
+  const serviceId = toState.trim().toUpperCase() === "RJ" ? SEDEX_SERVICE_ID : PAC_SERVICE_ID;
+  const serviceName = serviceId === SEDEX_SERVICE_ID ? "SEDEX" : "PAC";
+
+  const quotes = await calculateShipping(toCep, insuranceValue);
+  const match = quotes.find((q) => q.id === serviceId);
+
+  if (!match) {
+    throw new Error(`Frete ${serviceName} indisponível para esse CEP no momento`);
+  }
+
+  return { serviceId, serviceName, price: Number(match.price) };
+}
+
 function fromAddress() {
   return {
     name: process.env.MELHORENVIO_FROM_NAME,

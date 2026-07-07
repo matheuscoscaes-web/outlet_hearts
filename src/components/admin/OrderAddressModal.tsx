@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MapPin } from "lucide-react";
-import { formatCPF, formatCEP } from "@/lib/utils";
+import { formatCPF, formatCEP, formatCurrency } from "@/lib/utils";
 
 export function OrderAddressModal({
   customerName,
@@ -17,6 +17,8 @@ export function OrderAddressModal({
   shippingNeighborhood,
   shippingCity,
   shippingState,
+  shippingService,
+  shippingCost,
 }: {
   customerName: string;
   customerPhone: string | null;
@@ -30,6 +32,8 @@ export function OrderAddressModal({
   shippingNeighborhood: string | null;
   shippingCity: string | null;
   shippingState: string | null;
+  shippingService: string | null;
+  shippingCost: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const isPickup = deliveryMethod === "PICKUP";
@@ -102,6 +106,14 @@ export function OrderAddressModal({
                   </>
                 )}
               </div>
+              {!isPickup && shippingCost !== null && (
+                <div>
+                  <dt className="text-xs text-gray-400">Frete cobrado</dt>
+                  <dd className="text-gray-900">
+                    {shippingService ?? "—"} · {formatCurrency(shippingCost)}
+                  </dd>
+                </div>
+              )}
             </dl>
 
             <button

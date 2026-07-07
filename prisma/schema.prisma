@@ -192,6 +192,9 @@ model Order {
   meLabelUrl    String?
   meGeneratedAt DateTime?
 
+  shippingService String?
+  shippingCost    Decimal? @db.Decimal(10, 2)
+
   totalAmount   Decimal     @db.Decimal(10, 2)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

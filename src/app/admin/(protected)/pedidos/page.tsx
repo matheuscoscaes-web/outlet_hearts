@@ -137,6 +137,8 @@ export default async function AdminOrdersPage({
                           shippingNeighborhood={order.shippingNeighborhood}
                           shippingCity={order.shippingCity}
                           shippingState={order.shippingState}
+                          shippingService={order.shippingService}
+                          shippingCost={order.shippingCost === null ? null : Number(order.shippingCost)}
                         />
                         <ShippingLabelButton
                           orderId={order.id}
