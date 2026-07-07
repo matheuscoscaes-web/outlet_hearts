@@ -89,8 +89,10 @@ export default async function AdminOrdersPage({
               const payStatus = order.payment?.status ?? "PENDING";
               return (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-400">
-                    #{order.id.slice(-8).toUpperCase()}
+                  <td className="px-4 py-3 font-mono text-xs">
+                    <Link href={`/admin/pedidos/${order.id}`} className="text-brand-600 hover:underline">
+                      #{order.id.slice(-8).toUpperCase()}
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">{order.customerName}</p>
@@ -100,7 +102,9 @@ export default async function AdminOrdersPage({
                     {order.groupNumber ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">
-                    {order.items[0]?.product.name}
+                    <Link href={`/admin/pedidos/${order.id}`} className="hover:text-brand-600" title={order.items[0]?.product.name}>
+                      {order.items[0]?.product.name}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-brand-600">
                     {formatCurrency(Number(order.totalAmount))}
