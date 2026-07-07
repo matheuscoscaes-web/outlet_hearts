@@ -4,7 +4,7 @@ import { createReservationSchema } from "@/lib/validations";
 import { expireReservations } from "@/lib/expire-reservations";
 import type { Prisma } from "@prisma/client";
 
-const RESERVATION_MINUTES = 6;
+const RESERVATION_MINUTES = 15;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);

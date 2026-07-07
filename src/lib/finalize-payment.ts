@@ -11,10 +11,15 @@ interface MpPaymentData {
 
 /**
  * Aplica o resultado de um pagamento do Mercado Pago no pedido (Order/Payment/
- * Reservation/Stock). Idempotente: se o pedido já não estiver mais PENDING,
+ * Reservation/Stock). Idempotente: se o pedido já estiver PAID ou CANCELLED,
  * não faz nada — pode ser chamada tanto no retorno síncrono do checkout
- * (cartão) quanto pelo webhook (pix/boleto/confirmação assíncrona) sem
- * duplicar o efeito.
+ * (cartão) quanto pelo webhook/polling (pix/boleto) sem duplicar o efeito.
+ *
+ * Pedidos EXPIRED (a reserva estourou o prazo antes do pagamento confirmar)
+ * ainda são aceitos aqui: o cliente pode ter pago de verdade só depois da
+ * janela de reserva fechar, e nesse caso o estoque reservado já foi
+ * devolvido pela expiração — então só soma em "vendido", sem decrementar
+ * "reservado" de novo.
  */
 export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentData) {
   const order = await prisma.order.findUnique({
@@ -22,7 +27,9 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
     include: { reservation: true, payment: true },
   });
 
-  if (!order || order.status !== "PENDING") return;
+  if (!order) return;
+  const wasExpired = order.status === "EXPIRED";
+  if (order.status !== "PENDING" && !wasExpired) return;
 
   const mpStatus = mpData.status;
   const mpMethod = mpData.payment_type_id ?? mpData.payment_method_id;
@@ -50,21 +57,22 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
         data: { status: "CONVERTED" },
       });
 
+      const stockDelta = wasExpired
+        ? { quantitySold: { increment: order.reservation.quantity } }
+        : {
+            quantityReserved: { decrement: order.reservation.quantity },
+            quantitySold: { increment: order.reservation.quantity },
+          };
+
       if (order.reservation.productVariantId) {
         await tx.productVariant.update({
           where: { id: order.reservation.productVariantId },
-          data: {
-            quantityReserved: { decrement: order.reservation.quantity },
-            quantitySold: { increment: order.reservation.quantity },
-          },
+          data: stockDelta,
         });
       } else {
         await tx.stock.update({
           where: { productId: order.reservation.productId },
-          data: {
-            quantityReserved: { decrement: order.reservation.quantity },
-            quantitySold: { increment: order.reservation.quantity },
-          },
+          data: stockDelta,
         });
       }
 
@@ -77,6 +85,20 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
       }
     });
   } else if (mpStatus === "rejected" || mpStatus === "cancelled") {
+    if (wasExpired) {
+      // reserva já foi liberada pela expiração, não tem o que cancelar de
+      // novo — só deixa o pagamento registrado como recusado.
+      await prisma.payment.update({
+        where: { orderId: order.id },
+        data: {
+          status: "REJECTED",
+          gatewayId: String(mpData.id),
+          gatewayResponse: mpData as object,
+        },
+      });
+      return;
+    }
+
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.payment.update({
         where: { orderId: order.id },

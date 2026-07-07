@@ -48,14 +48,14 @@ export default async function HomePage() {
           Peças de couro legítimo,<br className="hidden sm:block" /> preço de outlet
         </h1>
         <p className="mt-3 max-w-xl text-brand-100 text-base sm:text-lg">
-          Estoque limitado e conferido peça a peça. Quem chegar primeiro leva — reservamos seu item por 6 minutos no checkout.
+          Estoque limitado e conferido peça a peça. Quem chegar primeiro leva — reservamos seu item por 15 minutos no checkout.
         </p>
         <div className="mt-5 flex flex-wrap gap-2 text-sm">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
             <Flame className="h-3.5 w-3.5" /> {available.length} produtos disponíveis
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
-            <Timer className="h-3.5 w-3.5" /> Reserva de 6 minutos
+            <Timer className="h-3.5 w-3.5" /> Reserva de 15 minutos
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
             <ShieldCheck className="h-3.5 w-3.5" /> Pagamento seguro

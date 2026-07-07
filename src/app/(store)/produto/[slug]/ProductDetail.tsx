@@ -227,7 +227,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
           </Button>
           {!isSoldOut && (
             <p className="text-xs text-center text-gray-500">
-              🔒 Ao clicar, o produto será reservado por 6 minutos para você
+              🔒 Ao clicar, o produto será reservado por 15 minutos para você
             </p>
           )}
         </div>
