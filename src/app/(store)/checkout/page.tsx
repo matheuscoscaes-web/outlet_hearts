@@ -357,6 +357,8 @@ function CheckoutContent() {
                   ticket: "all",
                   bankTransfer: "all",
                   atm: "all",
+                  minInstallments: 1,
+                  maxInstallments: 6,
                 },
               }}
               onSubmit={handleBrickSubmit}
