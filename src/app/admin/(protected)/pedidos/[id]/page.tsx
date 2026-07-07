@@ -4,12 +4,14 @@ import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatCPF, formatCEP } from "@/lib/utils";
+import { MarkShippedButton } from "@/components/admin/MarkShippedButton";
 
 export const revalidate = 0;
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "Aguardando", color: "bg-yellow-100 text-yellow-700" },
   PAID: { label: "Pago", color: "bg-green-100 text-green-700" },
+  SHIPPED: { label: "Enviado", color: "bg-blue-100 text-blue-700" },
   CANCELLED: { label: "Cancelado", color: "bg-red-100 text-red-700" },
   EXPIRED: { label: "Expirado", color: "bg-gray-100 text-gray-600" },
   REFUNDED: { label: "Reembolsado", color: "bg-blue-100 text-blue-700" },
@@ -64,6 +66,12 @@ export default async function AdminOrderDetailPage({
         <span className="text-xs text-gray-400">
           {new Date(order.createdAt).toLocaleString("pt-BR")}
         </span>
+        {order.status === "PAID" && (
+          <div className="flex items-center gap-1.5">
+            <MarkShippedButton orderId={order.id} canShip />
+            <span className="text-xs text-gray-500">Marcar como enviado</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

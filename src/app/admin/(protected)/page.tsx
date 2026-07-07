@@ -12,6 +12,7 @@ export const revalidate = 0;
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING:   { label: "Aguardando", color: "bg-yellow-100 text-yellow-700" },
   PAID:      { label: "Pago",       color: "bg-green-100 text-green-700"  },
+  SHIPPED:   { label: "Enviado",    color: "bg-blue-100 text-blue-700"    },
   CANCELLED: { label: "Cancelado",  color: "bg-red-100 text-red-700"      },
   EXPIRED:   { label: "Expirado",   color: "bg-gray-100 text-gray-500"    },
 };

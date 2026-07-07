@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { OrderAddressModal } from "@/components/admin/OrderAddressModal";
 import { ShippingLabelButton } from "@/components/admin/ShippingLabelButton";
+import { MarkShippedButton } from "@/components/admin/MarkShippedButton";
 import type { Order, OrderItem, Product, ProductImage, Payment } from "@prisma/client";
 
 export const revalidate = 0;
@@ -15,6 +16,7 @@ type OrderWithRelations = Order & {
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "Aguardando", color: "bg-yellow-100 text-yellow-700" },
   PAID: { label: "Pago", color: "bg-green-100 text-green-700" },
+  SHIPPED: { label: "Enviado", color: "bg-blue-100 text-blue-700" },
   CANCELLED: { label: "Cancelado", color: "bg-red-100 text-red-700" },
   EXPIRED: { label: "Expirado", color: "bg-gray-100 text-gray-600" },
   REFUNDED: { label: "Reembolsado", color: "bg-blue-100 text-blue-700" },
@@ -36,7 +38,7 @@ export default async function AdminOrdersPage({
   const { status } = await searchParams;
 
   const orders = await prisma.order.findMany({
-    where: status ? { status: status as "PENDING" | "PAID" | "CANCELLED" | "EXPIRED" } : undefined,
+    where: status ? { status: status as "PENDING" | "PAID" | "SHIPPED" | "CANCELLED" | "EXPIRED" } : undefined,
     include: {
       items: { include: { product: { include: { images: { take: 1 } } } } },
       payment: true,
@@ -48,6 +50,7 @@ export default async function AdminOrdersPage({
   const tabs = [
     { label: "Todos", value: "" },
     { label: "Pagos", value: "PAID" },
+    { label: "Enviados", value: "SHIPPED" },
     { label: "Aguardando", value: "PENDING" },
     { label: "Cancelados", value: "CANCELLED" },
   ];
@@ -146,11 +149,12 @@ export default async function AdminOrdersPage({
                         />
                         <ShippingLabelButton
                           orderId={order.id}
-                          canShip={order.status === "PAID"}
+                          canShip={order.status === "PAID" || order.status === "SHIPPED"}
                           deliveryMethod={order.deliveryMethod}
                           existingLabelUrl={order.meLabelUrl}
                           existingServiceName={order.meServiceName}
                         />
+                        <MarkShippedButton orderId={order.id} canShip={order.status === "PAID"} />
                       </div>
                     </div>
                   </td>
