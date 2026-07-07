@@ -15,8 +15,8 @@ interface Product {
   description: string;
   category: string;
   brand: string | null;
-  size: string | null;
-  color: string | null;
+  sizes: string[];
+  colors: string[];
   condition: string;
   originalPrice: number;
   outletPrice: number;
@@ -109,8 +109,12 @@ export default function ProductDetail({ product, discount }: { product: Product;
         </div>
 
         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-          {product.size && <span>📏 <strong>Tamanho:</strong> {product.size}</span>}
-          {product.color && <span>🎨 <strong>Cor:</strong> {product.color}</span>}
+          {product.sizes.length > 0 && (
+            <span>📏 <strong>{product.sizes.length > 1 ? "Tamanhos" : "Tamanho"}:</strong> {product.sizes.join(", ")}</span>
+          )}
+          {product.colors.length > 0 && (
+            <span>🎨 <strong>{product.colors.length > 1 ? "Cores" : "Cor"}:</strong> {product.colors.join(", ")}</span>
+          )}
         </div>
 
         <div className="rounded-xl bg-brand-50 p-4">

@@ -17,8 +17,8 @@ interface ProductFormProps {
     description?: string;
     category?: string;
     brand?: string;
-    size?: string;
-    color?: string;
+    sizes?: string[];
+    colors?: string[];
     condition?: string;
     originalPrice?: number;
     outletPrice?: number;
@@ -26,6 +26,81 @@ interface ProductFormProps {
     images?: { id: string; url: string; altText?: string | null }[];
     stock?: { quantityTotal: number };
   };
+}
+
+function TagListInput({
+  label,
+  placeholder,
+  values,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  function addTag() {
+    const value = draft.trim();
+    if (!value || values.includes(value)) {
+      setDraft("");
+      return;
+    }
+    onChange([...values, value]);
+    setDraft("");
+  }
+
+  function removeTag(value: string) {
+    onChange(values.filter((v) => v !== value));
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addTag();
+            }
+          }}
+          placeholder={placeholder}
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
+        <button
+          type="button"
+          onClick={addTag}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Adicionar
+        </button>
+      </div>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {values.map((v) => (
+            <span
+              key={v}
+              className="inline-flex items-center gap-1 rounded-full bg-brand-50 text-brand-700 text-xs font-medium px-2.5 py-1"
+            >
+              {v}
+              <button
+                type="button"
+                onClick={() => removeTag(v)}
+                className="hover:text-brand-900"
+                aria-label={`Remover ${v}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ProductForm({ initialData }: ProductFormProps) {
@@ -40,13 +115,13 @@ export function ProductForm({ initialData }: ProductFormProps) {
     description: initialData?.description ?? "",
     category: initialData?.category ?? "",
     brand: initialData?.brand ?? "",
-    size: initialData?.size ?? "",
-    color: initialData?.color ?? "",
     originalPrice: initialData?.originalPrice?.toString() ?? "",
     outletPrice: initialData?.outletPrice?.toString() ?? "",
     quantity: initialData?.stock?.quantityTotal?.toString() ?? "",
     status: initialData?.status ?? "ACTIVE",
   });
+  const [sizes, setSizes] = useState<string[]>(initialData?.sizes ?? []);
+  const [colors, setColors] = useState<string[]>(initialData?.colors ?? []);
 
   const [images, setImages] = useState<{ id: string; url: string }[]>(
     initialData?.images?.map((i) => ({ id: i.id, url: i.url })) ?? []
@@ -101,8 +176,8 @@ export function ProductForm({ initialData }: ProductFormProps) {
       description: form.description,
       category: form.category,
       brand: form.brand || undefined,
-      size: form.size || undefined,
-      color: form.color || undefined,
+      sizes,
+      colors,
       originalPrice: Number(form.originalPrice),
       outletPrice: Number(form.outletPrice),
       quantity: Number(form.quantity),
@@ -206,10 +281,21 @@ export function ProductForm({ initialData }: ProductFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input label="Marca" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} placeholder="Nike" />
-          <Input label="Tamanho" value={form.size} onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))} placeholder="M / 42" />
-          <Input label="Cor" value={form.color} onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))} placeholder="Azul" />
+        <Input label="Marca" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} placeholder="Nike" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <TagListInput
+            label="Tamanhos"
+            placeholder="Ex: M, 42..."
+            values={sizes}
+            onChange={setSizes}
+          />
+          <TagListInput
+            label="Cores"
+            placeholder="Ex: Azul, Preto..."
+            values={colors}
+            onChange={setColors}
+          />
         </div>
       </div>
 

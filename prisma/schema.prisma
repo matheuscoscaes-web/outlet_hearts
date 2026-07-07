@@ -39,8 +39,8 @@ model Product {
   description      String           @db.Text
   category         String
   brand            String?
-  size             String?
-  color            String?
+  sizes            String[]         @default([])
+  colors           String[]         @default([])
   condition        ProductCondition
   originalPrice    Decimal          @db.Decimal(10, 2)
   outletPrice      Decimal          @db.Decimal(10, 2)
