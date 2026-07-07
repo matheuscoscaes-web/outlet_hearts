@@ -96,6 +96,12 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
         data: { quantityReserved: { decrement: order.reservation.quantity } },
       });
     });
+  } else if (mpData.id) {
+    // pix/boleto ainda pendente: guarda o id do pagamento no Mercado Pago
+    // para permitir consultar o status depois (não depende só do webhook).
+    await prisma.payment.update({
+      where: { orderId: order.id },
+      data: { gatewayId: String(mpData.id), method: mpMethod },
+    });
   }
-  // pending/in_process: fica PENDING, confirmação final vem do webhook (pix/boleto)
 }
