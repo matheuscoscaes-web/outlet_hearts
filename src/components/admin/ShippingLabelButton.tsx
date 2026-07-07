@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 interface Quote {
   id: number;
   name: string;
-  company: string;
+  company: { id: number; name: string; picture: string };
   price: string;
   delivery_time: number;
 }
@@ -81,7 +81,7 @@ export function ShippingLabelButton({
     const res = await fetch(`/api/admin/orders/${orderId}/shipping/label`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceId: selected.id, serviceName: `${selected.company} ${selected.name}` }),
+      body: JSON.stringify({ serviceId: selected.id, serviceName: `${selected.company.name} ${selected.name}` }),
     });
     const data = await res.json();
 
@@ -141,7 +141,7 @@ export function ShippingLabelButton({
                         className="text-brand-600"
                       />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{q.company} — {q.name}</p>
+                        <p className="text-sm font-medium text-gray-900">{q.company.name} — {q.name}</p>
                         <p className="text-xs text-gray-400">até {q.delivery_time} dias úteis</p>
                       </div>
                     </div>
