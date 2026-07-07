@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getProductAvailability } from "@/lib/product-stock";
 import type { Prisma } from "@prisma/client";
 
 export async function expireReservations(): Promise<number> {
   const expired = await prisma.reservation.findMany({
     where: { status: "ACTIVE", expiresAt: { lt: new Date() } },
-    select: { id: true, quantity: true, productId: true },
+    select: { id: true, quantity: true, productId: true, productVariantId: true },
   });
 
   if (expired.length === 0) return 0;
@@ -19,16 +20,19 @@ export async function expireReservations(): Promise<number> {
           data: { status: "EXPIRED" },
         });
 
-        const updatedStock = await tx.stock.update({
-          where: { productId: res.productId },
-          data: { quantityReserved: { decrement: res.quantity } },
-        });
+        if (res.productVariantId) {
+          await tx.productVariant.update({
+            where: { id: res.productVariantId },
+            data: { quantityReserved: { decrement: res.quantity } },
+          });
+        } else {
+          await tx.stock.update({
+            where: { productId: res.productId },
+            data: { quantityReserved: { decrement: res.quantity } },
+          });
+        }
 
-        const available =
-          updatedStock.quantityTotal -
-          updatedStock.quantityReserved -
-          updatedStock.quantitySold;
-
+        const available = await getProductAvailability(res.productId, tx);
         if (available > 0) {
           await tx.product.updateMany({
             where: { id: res.productId, status: "SOLD_OUT" },

@@ -11,7 +11,7 @@ export default async function EditProductPage({
 
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { images: { orderBy: { order: "asc" } }, stock: true },
+    include: { images: { orderBy: { order: "asc" } }, stock: true, variants: true },
   });
 
   if (!product) notFound();
@@ -43,6 +43,11 @@ export default async function EditProductPage({
           stock: product.stock
             ? { quantityTotal: product.stock.quantityTotal }
             : undefined,
+          variants: product.variants.map((v) => ({
+            id: v.id,
+            color: v.color,
+            quantityTotal: v.quantityTotal,
+          })),
         }}
       />
     </div>

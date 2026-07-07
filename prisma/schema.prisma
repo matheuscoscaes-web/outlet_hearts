@@ -23,7 +23,8 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  stockLogs StockLog[]
+  stockLogs        StockLog[]
+  variantStockLogs VariantStockLog[]
 }
 
 enum AdminRole {
@@ -50,6 +51,7 @@ model Product {
 
   images       ProductImage[]
   stock        Stock?
+  variants     ProductVariant[]
   reservations Reservation[]
   orderItems   OrderItem[]
 }
@@ -104,18 +106,55 @@ model StockLog {
   adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
 }
 
-model Reservation {
-  id          String            @id @default(cuid())
-  productId   String
-  quantity    Int
-  status      ReservationStatus @default(ACTIVE)
-  clientToken String
-  expiresAt   DateTime
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+// Estoque por cor — opcional. Um produto só passa a usar esse fluxo
+// quando o admin cadastra pelo menos uma variante (cor + quantidade)
+// para ele; produtos sem nenhuma linha aqui continuam usando o Stock
+// (por produto) de sempre, sem qualquer mudança de comportamento.
+model ProductVariant {
+  id               String   @id @default(cuid())
+  productId        String
+  color            String
+  quantityTotal    Int      @default(0)
+  quantityReserved Int      @default(0)
+  quantitySold     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  product Product @relation(fields: [productId], references: [id])
-  order   Order?
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  logs         VariantStockLog[]
+  reservations Reservation[]
+  orderItems   OrderItem[]
+
+  @@unique([productId, color])
+}
+
+model VariantStockLog {
+  id          String   @id @default(cuid())
+  variantId   String
+  adminUserId String?
+  reason      String
+  delta       Int
+  note        String?
+  createdAt   DateTime @default(now())
+
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  adminUser AdminUser?     @relation(fields: [adminUserId], references: [id])
+}
+
+model Reservation {
+  id               String            @id @default(cuid())
+  productId        String
+  productVariantId String?
+  quantity         Int
+  status           ReservationStatus @default(ACTIVE)
+  clientToken      String
+  expiresAt        DateTime
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id])
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id])
+  order          Order?
 
   @@index([status, expiresAt])
   @@index([clientToken])
@@ -175,15 +214,17 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id         String  @id @default(cuid())
-  orderId    String
-  productId  String
-  quantity   Int
-  unitPrice  Decimal @db.Decimal(10, 2)
-  totalPrice Decimal @db.Decimal(10, 2)
+  id               String  @id @default(cuid())
+  orderId          String
+  productId        String
+  productVariantId String?
+  quantity         Int
+  unitPrice        Decimal @db.Decimal(10, 2)
+  totalPrice       Decimal @db.Decimal(10, 2)
 
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  order          Order           @relation(fields: [orderId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id])
 }
 
 model Payment {

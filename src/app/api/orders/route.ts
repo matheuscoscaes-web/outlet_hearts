@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
           items: {
             create: {
               productId: reservation.productId,
+              productVariantId: reservation.productVariantId,
               quantity: reservation.quantity,
               unitPrice,
               totalPrice: totalAmount,

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromRequest } from "@/lib/auth";
 import { createProductSchema } from "@/lib/validations";
-import { slugify } from "@/lib/utils";
-import type { Product, ProductImage, Stock } from "@prisma/client";
+import { calcProductAvailable, slugify } from "@/lib/utils";
+import type { Product, ProductImage, Stock, ProductVariant } from "@prisma/client";
 
 type ProductWithRelations = Product & {
   images: ProductImage[];
   stock: Stock | null;
+  variants: ProductVariant[];
 };
 
 export async function GET(req: NextRequest) {
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
     include: {
       images: { orderBy: { order: "asc" } },
       stock: true,
+      variants: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -31,9 +33,7 @@ export async function GET(req: NextRequest) {
       ...p,
       originalPrice: Number(p.originalPrice),
       outletPrice: Number(p.outletPrice),
-      quantityAvailable: p.stock
-        ? Math.max(0, p.stock.quantityTotal - p.stock.quantityReserved - p.stock.quantitySold)
-        : 0,
+      quantityAvailable: calcProductAvailable(p.stock, p.variants),
     }))
   );
 }

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { Product, ProductImage, Stock } from "@prisma/client";
+import { calcProductAvailable } from "@/lib/utils";
+import type { Product, ProductImage, Stock, ProductVariant } from "@prisma/client";
 
 type ProductWithRelations = Product & {
   images: ProductImage[];
   stock: Stock | null;
+  variants: ProductVariant[];
 };
 
 export async function GET() {
@@ -13,6 +15,7 @@ export async function GET() {
     include: {
       images: { orderBy: { order: "asc" } },
       stock: true,
+      variants: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -21,14 +24,7 @@ export async function GET() {
     ...p,
     originalPrice: Number(p.originalPrice),
     outletPrice: Number(p.outletPrice),
-    quantityAvailable: p.stock
-      ? Math.max(
-          0,
-          p.stock.quantityTotal -
-            p.stock.quantityReserved -
-            p.stock.quantitySold
-        )
-      : 0,
+    quantityAvailable: calcProductAvailable(p.stock, p.variants),
   }));
 
   return NextResponse.json(result);

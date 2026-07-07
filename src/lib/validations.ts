@@ -3,6 +3,7 @@ import { isValidCPF } from "./utils";
 
 export const createReservationSchema = z.object({
   productId: z.string().min(1),
+  color: z.string().optional(),
   quantity: z.number().int().min(1).max(10),
   clientToken: z.string().min(1),
 });

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getProductAvailability } from "@/lib/product-stock";
 import type { Prisma } from "@prisma/client";
 
 interface MpPaymentData {
@@ -49,25 +50,30 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
         data: { status: "CONVERTED" },
       });
 
-      await tx.stock.update({
-        where: { productId: order.reservation.productId },
-        data: {
-          quantityReserved: { decrement: order.reservation.quantity },
-          quantitySold: { increment: order.reservation.quantity },
-        },
-      });
+      if (order.reservation.productVariantId) {
+        await tx.productVariant.update({
+          where: { id: order.reservation.productVariantId },
+          data: {
+            quantityReserved: { decrement: order.reservation.quantity },
+            quantitySold: { increment: order.reservation.quantity },
+          },
+        });
+      } else {
+        await tx.stock.update({
+          where: { productId: order.reservation.productId },
+          data: {
+            quantityReserved: { decrement: order.reservation.quantity },
+            quantitySold: { increment: order.reservation.quantity },
+          },
+        });
+      }
 
-      const stock = await tx.stock.findUnique({
-        where: { productId: order.reservation.productId },
-      });
-      if (stock) {
-        const available = stock.quantityTotal - stock.quantityReserved - stock.quantitySold;
-        if (available <= 0) {
-          await tx.product.update({
-            where: { id: order.reservation.productId },
-            data: { status: "SOLD_OUT" },
-          });
-        }
+      const available = await getProductAvailability(order.reservation.productId, tx);
+      if (available <= 0) {
+        await tx.product.update({
+          where: { id: order.reservation.productId },
+          data: { status: "SOLD_OUT" },
+        });
       }
     });
   } else if (mpStatus === "rejected" || mpStatus === "cancelled") {
@@ -91,10 +97,17 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
         data: { status: "CANCELLED" },
       });
 
-      await tx.stock.update({
-        where: { productId: order.reservation.productId },
-        data: { quantityReserved: { decrement: order.reservation.quantity } },
-      });
+      if (order.reservation.productVariantId) {
+        await tx.productVariant.update({
+          where: { id: order.reservation.productVariantId },
+          data: { quantityReserved: { decrement: order.reservation.quantity } },
+        });
+      } else {
+        await tx.stock.update({
+          where: { productId: order.reservation.productId },
+          data: { quantityReserved: { decrement: order.reservation.quantity } },
+        });
+      }
     });
   } else if (mpData.id) {
     // pix/boleto ainda pendente: guarda o id do pagamento no Mercado Pago

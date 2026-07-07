@@ -28,6 +28,24 @@ export function calcAvailable(
   return Math.max(0, total - reserved - sold);
 }
 
+/**
+ * Disponibilidade de um produto que já veio com stock/variants
+ * carregados (sem query extra) — soma as variantes por cor se
+ * existirem, senão cai no Stock por produto de sempre.
+ */
+export function calcProductAvailable(
+  stock: { quantityTotal: number; quantityReserved: number; quantitySold: number } | null,
+  variants: { quantityTotal: number; quantityReserved: number; quantitySold: number }[]
+): number {
+  if (variants.length > 0) {
+    return variants.reduce(
+      (sum, v) => sum + calcAvailable(v.quantityTotal, v.quantityReserved, v.quantitySold),
+      0
+    );
+  }
+  return stock ? calcAvailable(stock.quantityTotal, stock.quantityReserved, stock.quantitySold) : 0;
+}
+
 export const CONDITION_LABELS: Record<string, string> = {
   NEW: "Novo",
   LIKE_NEW: "Seminovo",

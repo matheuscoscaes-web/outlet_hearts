@@ -1,15 +1,16 @@
 import { ProductCard } from "@/components/store/ProductCard";
-import { calcAvailable } from "@/lib/utils";
+import { calcProductAvailable } from "@/lib/utils";
 import { MOCK_PRODUCTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { Timer, ShieldCheck, Flame } from "lucide-react";
-import type { Product, ProductImage, Stock } from "@prisma/client";
+import type { Product, ProductImage, Stock, ProductVariant } from "@prisma/client";
 
 export const revalidate = 30;
 
 type ProductWithRelations = Product & {
   images: ProductImage[];
   stock: Stock | null;
+  variants: ProductVariant[];
 };
 
 async function getProducts() {
@@ -17,16 +18,14 @@ async function getProducts() {
     const { prisma } = await import("@/lib/prisma");
     const products = await prisma.product.findMany({
       where: { status: { not: "INACTIVE" } },
-      include: { images: { orderBy: { order: "asc" } }, stock: true },
+      include: { images: { orderBy: { order: "asc" } }, stock: true, variants: true },
       orderBy: { createdAt: "desc" },
     });
     return (products as ProductWithRelations[]).map((p) => ({
       ...p,
       originalPrice: Number(p.originalPrice),
       outletPrice: Number(p.outletPrice),
-      quantityAvailable: p.stock
-        ? calcAvailable(p.stock.quantityTotal, p.stock.quantityReserved, p.stock.quantitySold)
-        : 0,
+      quantityAvailable: calcProductAvailable(p.stock, p.variants),
     }));
   } catch {
     return MOCK_PRODUCTS;

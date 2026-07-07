@@ -1,23 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, Edit } from "lucide-react";
-import { formatCurrency, calcDiscount } from "@/lib/utils";
+import { formatCurrency, calcDiscount, calcProductAvailable } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import StockAdjustModal from "./StockAdjustModal";
 import { StatusToggle } from "@/components/admin/StatusToggle";
-import type { Product, ProductImage, Stock } from "@prisma/client";
+import type { Product, ProductImage, Stock, ProductVariant } from "@prisma/client";
 
 export const revalidate = 0;
 
 type ProductWithRelations = Product & {
   images: ProductImage[];
   stock: Stock | null;
+  variants: ProductVariant[];
 };
-
-function calcAvailable(s: Stock): number {
-  return Math.max(0, s.quantityTotal - s.quantityReserved - s.quantitySold);
-}
 
 export default async function AdminProductsPage({
   searchParams,
@@ -28,7 +25,7 @@ export default async function AdminProductsPage({
 
   const products = await prisma.product.findMany({
     where: status ? { status: status as "ACTIVE" | "INACTIVE" | "SOLD_OUT" } : undefined,
-    include: { images: { take: 1, orderBy: { order: "asc" } }, stock: true },
+    include: { images: { take: 1, orderBy: { order: "asc" } }, stock: true, variants: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -78,7 +75,10 @@ export default async function AdminProductsPage({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {(products as ProductWithRelations[]).map((p) => {
-              const available = p.stock ? calcAvailable(p.stock) : 0;
+              const available = calcProductAvailable(p.stock, p.variants);
+              const total = p.variants.length > 0
+                ? p.variants.reduce((sum, v) => sum + v.quantityTotal, 0)
+                : p.stock?.quantityTotal;
               const discount = calcDiscount(Number(p.originalPrice), Number(p.outletPrice));
               const img = p.images[0];
 
@@ -109,7 +109,10 @@ export default async function AdminProductsPage({
                     <span className={`font-mono text-sm font-bold ${available === 0 ? "text-red-600" : available <= 3 ? "text-amber-600" : "text-green-700"}`}>
                       {available}
                     </span>
-                    {p.stock && <span className="text-xs text-gray-400"> / {p.stock.quantityTotal}</span>}
+                    {total !== undefined && <span className="text-xs text-gray-400"> / {total}</span>}
+                    {p.variants.length > 0 && (
+                      <p className="text-[10px] text-gray-400">por cor</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusToggle
@@ -120,7 +123,9 @@ export default async function AdminProductsPage({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <StockAdjustModal productId={p.id} productName={p.name} currentStock={p.stock?.quantityTotal ?? 0} />
+                      {p.variants.length === 0 && (
+                        <StockAdjustModal productId={p.id} productName={p.name} currentStock={p.stock?.quantityTotal ?? 0} />
+                      )}
                       <Link href={`/admin/produtos/${p.id}`}>
                         <button className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50">
                           <Edit className="h-4 w-4" />

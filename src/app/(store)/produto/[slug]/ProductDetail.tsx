@@ -23,29 +23,47 @@ interface Product {
   status: string;
   quantityAvailable: number;
   images: { id: string; url: string; altText: string | null; color: string | null }[];
+  variants: { color: string; quantityAvailable: number }[];
 }
 
 export default function ProductDetail({ product, discount }: { product: Product; discount: number }) {
   const router = useRouter();
+  const hasVariants = product.variants.length > 0;
   const [selectedImg, setSelectedImg] = useState(0);
-  const [selectedColor, setSelectedColor] = useState<string | null>(product.images[0]?.color ?? null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(
+    hasVariants ? null : product.images[0]?.color ?? null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   function selectImage(i: number) {
     setSelectedImg(i);
-    setSelectedColor(product.images[i]?.color ?? null);
+    const color = product.images[i]?.color ?? null;
+    if (!hasVariants || (color && variantAvailable(color) > 0)) {
+      setSelectedColor(color);
+    }
+  }
+
+  function variantAvailable(color: string): number {
+    return product.variants.find((v) => v.color === color)?.quantityAvailable ?? 0;
   }
 
   function selectColor(color: string) {
+    if (hasVariants && variantAvailable(color) === 0) return;
     const idx = product.images.findIndex((img) => img.color === color);
     setSelectedColor(color);
     if (idx !== -1) setSelectedImg(idx);
   }
 
   const isSoldOut = product.status === "SOLD_OUT" || product.quantityAvailable === 0;
+  const needsColor = hasVariants && !selectedColor;
 
   async function handleBuy() {
+    if (needsColor) {
+      setError("Selecione uma cor pra continuar.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -59,7 +77,12 @@ export default function ProductDetail({ product, discount }: { product: Product;
     const res = await fetch("/api/reservations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: product.id, quantity: 1, clientToken }),
+      body: JSON.stringify({
+        productId: product.id,
+        quantity: 1,
+        clientToken,
+        ...(hasVariants ? { color: selectedColor } : {}),
+      }),
     });
 
     const data = await res.json();
@@ -130,23 +153,38 @@ export default function ProductDetail({ product, discount }: { product: Product;
           <div>
             <p className="text-sm text-gray-600 mb-1.5">
               🎨 <strong>{product.colors.length > 1 ? "Cores" : "Cor"}:</strong>
+              {hasVariants && !selectedColor && (
+                <span className="text-brand-600 font-medium"> escolha uma</span>
+              )}
             </p>
             <div className="flex flex-wrap gap-2">
-              {product.colors.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => selectColor(c)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    selectedColor === c
-                      ? "border-brand-500 bg-brand-50 text-brand-700"
-                      : "border-gray-300 text-gray-600 hover:border-brand-300"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              {product.colors.map((c) => {
+                const unavailable = hasVariants && variantAvailable(c) === 0;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    disabled={unavailable}
+                    onClick={() => selectColor(c)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selectedColor === c
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : unavailable
+                        ? "border-gray-200 text-gray-300 cursor-not-allowed line-through"
+                        : "border-gray-300 text-gray-600 hover:border-brand-300"
+                    }`}
+                  >
+                    {c}
+                    {unavailable && " (esgotado)"}
+                  </button>
+                );
+              })}
             </div>
+            {hasVariants && selectedColor && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                {variantAvailable(selectedColor)} {variantAvailable(selectedColor) === 1 ? "disponível" : "disponíveis"} na cor {selectedColor}
+              </p>
+            )}
           </div>
         )}
 
@@ -176,10 +214,16 @@ export default function ProductDetail({ product, discount }: { product: Product;
             size="lg"
             onClick={handleBuy}
             loading={loading}
-            disabled={isSoldOut}
+            disabled={isSoldOut || needsColor}
             className="w-full"
           >
-            {isSoldOut ? "Produto esgotado" : loading ? "Reservando..." : "⚡ Comprar agora"}
+            {isSoldOut
+              ? "Produto esgotado"
+              : loading
+              ? "Reservando..."
+              : needsColor
+              ? "Selecione uma cor"
+              : "⚡ Comprar agora"}
           </Button>
           {!isSoldOut && (
             <p className="text-xs text-center text-gray-500">
@@ -198,10 +242,16 @@ export default function ProductDetail({ product, discount }: { product: Product;
               size="lg"
               onClick={handleBuy}
               loading={loading}
-              disabled={isSoldOut}
+              disabled={isSoldOut || needsColor}
               className="flex-1"
             >
-              {isSoldOut ? "Esgotado" : loading ? "Reservando..." : "⚡ Comprar agora"}
+              {isSoldOut
+                ? "Esgotado"
+                : loading
+                ? "Reservando..."
+                : needsColor
+                ? "Selecione uma cor"
+                : "⚡ Comprar agora"}
             </Button>
           </div>
         </div>

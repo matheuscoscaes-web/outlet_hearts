@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calcProductAvailable } from "@/lib/utils";
 
 export async function GET(
   _req: NextRequest,
@@ -12,6 +13,7 @@ export async function GET(
     include: {
       images: { orderBy: { order: "asc" } },
       stock: true,
+      variants: true,
     },
   });
 
@@ -19,19 +21,10 @@ export async function GET(
     return NextResponse.json({ error: "Produto não encontrado" }, { status: 404 });
   }
 
-  const quantityAvailable = product.stock
-    ? Math.max(
-        0,
-        product.stock.quantityTotal -
-          product.stock.quantityReserved -
-          product.stock.quantitySold
-      )
-    : 0;
-
   return NextResponse.json({
     ...product,
     originalPrice: Number(product.originalPrice),
     outletPrice: Number(product.outletPrice),
-    quantityAvailable,
+    quantityAvailable: calcProductAvailable(product.stock, product.variants),
   });
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { slugify, CATEGORY_OPTIONS, calcDiscount } from "@/lib/utils";
 import Image from "next/image";
 import { X, Upload } from "lucide-react";
+import VariantStockAdjustModal from "./VariantStockAdjustModal";
 
 interface ProductFormProps {
   initialData?: {
@@ -25,6 +26,7 @@ interface ProductFormProps {
     status?: string;
     images?: { id: string; url: string; altText?: string | null; color?: string | null }[];
     stock?: { quantityTotal: number };
+    variants?: { id: string; color: string; quantityTotal: number }[];
   };
 }
 
@@ -122,6 +124,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
   });
   const [sizes, setSizes] = useState<string[]>(initialData?.sizes ?? []);
   const [colors, setColors] = useState<string[]>(initialData?.colors ?? []);
+  const [variants, setVariants] = useState(initialData?.variants ?? []);
+  const [colorStockInputs, setColorStockInputs] = useState<Record<string, string>>({});
+  const [creatingVariant, setCreatingVariant] = useState<string | null>(null);
 
   const [images, setImages] = useState<{ id: string; url: string; color: string | null }[]>(
     initialData?.images?.map((i) => ({ id: i.id, url: i.url, color: i.color ?? null })) ?? []
@@ -181,6 +186,23 @@ export function ProductForm({ initialData }: ProductFormProps) {
     });
   }
 
+  async function createVariant(color: string) {
+    if (!initialData?.id) return;
+    const quantityTotal = Number(colorStockInputs[color] ?? "0");
+    setCreatingVariant(color);
+    const res = await fetch(`/api/admin/products/${initialData.id}/variants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ color, quantityTotal }),
+    });
+    const data = await res.json();
+    setCreatingVariant(null);
+    if (res.ok) {
+      setVariants((prev) => [...prev, data]);
+      setColorStockInputs((prev) => ({ ...prev, [color]: "" }));
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -237,6 +259,18 @@ export function ProductForm({ initialData }: ProductFormProps) {
         method: "POST",
         body: fd,
       });
+    }
+
+    // Estoque por cor (só cria variante pra cor que recebeu quantidade)
+    for (const color of colors) {
+      const qty = colorStockInputs[color];
+      if (qty !== undefined && qty !== "") {
+        await fetch(`/api/admin/products/${productId}/variants`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ color, quantityTotal: Number(qty) }),
+        });
+      }
     }
 
     router.push("/admin/produtos");
@@ -361,7 +395,72 @@ export function ProductForm({ initialData }: ProductFormProps) {
             ⚠️ Para ajustar estoque com registro de motivo, use a opção "Ajustar estoque" na listagem de produtos.
           </p>
         )}
+        {colors.length > 0 && (
+          <p className="text-xs text-amber-700 bg-amber-50 rounded px-3 py-2">
+            ⚠️ Esse campo é ignorado na loja quando o produto tem estoque por cor definido abaixo.
+          </p>
+        )}
       </div>
+
+      {/* Estoque por cor */}
+      {colors.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-3">
+          <h2 className="font-semibold text-gray-900">Estoque por cor</h2>
+          <p className="text-xs text-gray-500 -mt-2">
+            Defina a quantidade de cada cor. A partir da primeira cor com estoque definido, o cliente passa a escolher a cor antes de comprar.
+          </p>
+          <div className="space-y-2">
+            {colors.map((color) => {
+              const variant = variants.find((v) => v.color === color);
+              if (variant) {
+                return (
+                  <div key={color} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                    <span className="text-sm text-gray-700">{color}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{variant.quantityTotal} un.</span>
+                      {isEditing && (
+                        <VariantStockAdjustModal
+                          variantId={variant.id}
+                          colorLabel={color}
+                          currentStock={variant.quantityTotal}
+                          onAdjusted={(newTotal) =>
+                            setVariants((prev) => prev.map((v) => (v.id === variant.id ? { ...v, quantityTotal: newTotal } : v)))
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div key={color} className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2">
+                  <span className="text-sm text-gray-700">{color}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={colorStockInputs[color] ?? ""}
+                      onChange={(e) => setColorStockInputs((prev) => ({ ...prev, [color]: e.target.value }))}
+                      placeholder="Qtd."
+                      className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    {isEditing && (
+                      <button
+                        type="button"
+                        disabled={!colorStockInputs[color] || creatingVariant === color}
+                        onClick={() => createVariant(color)}
+                        className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                      >
+                        {creatingVariant === color ? "Criando..." : "Criar estoque"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Imagens */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">

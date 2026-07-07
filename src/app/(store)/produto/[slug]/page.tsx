@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { calcDiscount } from "@/lib/utils";
+import { calcAvailable, calcDiscount, calcProductAvailable } from "@/lib/utils";
 import { MOCK_PRODUCTS } from "@/lib/mock-data";
 import ProductDetail from "./ProductDetail";
 
@@ -18,17 +18,18 @@ export default async function ProductPage({
     const { prisma } = await import("@/lib/prisma");
     const dbProduct = await prisma.product.findUnique({
       where: { slug },
-      include: { images: { orderBy: { order: "asc" } }, stock: true },
+      include: { images: { orderBy: { order: "asc" } }, stock: true, variants: true },
     });
     if (dbProduct && dbProduct.status !== "INACTIVE") {
-      const quantityAvailable = dbProduct.stock
-        ? Math.max(0, dbProduct.stock.quantityTotal - dbProduct.stock.quantityReserved - dbProduct.stock.quantitySold)
-        : 0;
       product = {
         ...dbProduct,
         originalPrice: Number(dbProduct.originalPrice),
         outletPrice: Number(dbProduct.outletPrice),
-        quantityAvailable,
+        quantityAvailable: calcProductAvailable(dbProduct.stock, dbProduct.variants),
+        variants: dbProduct.variants.map((v) => ({
+          color: v.color,
+          quantityAvailable: calcAvailable(v.quantityTotal, v.quantityReserved, v.quantitySold),
+        })),
       };
     }
   } catch {
