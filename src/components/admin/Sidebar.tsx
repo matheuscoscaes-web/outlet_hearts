@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, LayoutDashboard, Package, ShoppingBag, Clock, LogOut, Menu, X } from "lucide-react";
+import { Heart, LayoutDashboard, Package, ShoppingBag, Clock, FileBarChart, LogOut, Menu, X } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/admin/reservas", label: "Reservas", icon: Clock },
+  { href: "/admin/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
 
 function Brand() {
