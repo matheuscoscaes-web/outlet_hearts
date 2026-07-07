@@ -15,6 +15,7 @@ export const createOrderSchema = z
     customerEmail: z.string().email(),
     customerPhone: z.string().optional(),
     customerCpf: z.string().refine(isValidCPF, "CPF inválido"),
+    groupNumber: z.string().min(1, "Informe o número do grupo da Hearts"),
     deliveryMethod: z.enum(["SHIPPING", "PICKUP"]).default("SHIPPING"),
     shippingCep: z
       .string()

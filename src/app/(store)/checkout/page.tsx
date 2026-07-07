@@ -52,6 +52,7 @@ function CheckoutContent() {
     email: "",
     phone: "",
     cpf: "",
+    groupNumber: "",
     cep: "",
     street: "",
     number: "",
@@ -139,6 +140,7 @@ function CheckoutContent() {
         customerEmail: form.email,
         customerPhone: form.phone,
         customerCpf: form.cpf,
+        groupNumber: form.groupNumber,
         deliveryMethod,
         ...(deliveryMethod === "SHIPPING"
           ? {
@@ -422,6 +424,13 @@ function CheckoutContent() {
             onChange={(e) => setForm((f) => ({ ...f, cpf: formatCPF(e.target.value) }))}
             placeholder="000.000.000-00"
             maxLength={14}
+          />
+          <Input
+            label="Número do grupo da Hearts"
+            required
+            value={form.groupNumber}
+            onChange={(e) => setForm((f) => ({ ...f, groupNumber: e.target.value }))}
+            placeholder="Ex: 5"
           />
 
           <h2 className="font-semibold text-gray-900 mt-2">Como você quer receber?</h2>

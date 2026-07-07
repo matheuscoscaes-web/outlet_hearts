@@ -8,6 +8,7 @@ export function OrderAddressModal({
   customerName,
   customerPhone,
   customerCpf,
+  groupNumber,
   deliveryMethod,
   shippingCep,
   shippingStreet,
@@ -20,6 +21,7 @@ export function OrderAddressModal({
   customerName: string;
   customerPhone: string | null;
   customerCpf: string | null;
+  groupNumber: string | null;
   deliveryMethod: string;
   shippingCep: string | null;
   shippingStreet: string | null;
@@ -68,6 +70,12 @@ export function OrderAddressModal({
                 <div>
                   <dt className="text-xs text-gray-400">Telefone</dt>
                   <dd className="text-gray-900">{customerPhone}</dd>
+                </div>
+              )}
+              {groupNumber && (
+                <div>
+                  <dt className="text-xs text-gray-400">Grupo da Hearts</dt>
+                  <dd className="text-gray-900">{groupNumber}</dd>
                 </div>
               )}
               <div className="border-t border-gray-100 pt-3">

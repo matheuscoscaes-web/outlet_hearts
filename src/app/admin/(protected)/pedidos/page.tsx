@@ -74,6 +74,7 @@ export default async function AdminOrdersPage({
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Pedido</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Cliente</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-600">Grupo</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Produto</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Total</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">Pagamento</th>
@@ -94,6 +95,9 @@ export default async function AdminOrdersPage({
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">{order.customerName}</p>
                     <p className="text-xs text-gray-400">{order.customerEmail}</p>
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-700">
+                    {order.groupNumber ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">
                     {order.items[0]?.product.name}
@@ -124,6 +128,7 @@ export default async function AdminOrdersPage({
                           customerName={order.customerName}
                           customerPhone={order.customerPhone}
                           customerCpf={order.customerCpf}
+                          groupNumber={order.groupNumber}
                           deliveryMethod={order.deliveryMethod}
                           shippingCep={order.shippingCep}
                           shippingStreet={order.shippingStreet}
@@ -148,7 +153,7 @@ export default async function AdminOrdersPage({
             })}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+                <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                   Nenhum pedido encontrado.
                 </td>
               </tr>

@@ -176,6 +176,7 @@ model Order {
   customerEmail  String
   customerPhone  String?
   customerCpf    String?
+  groupNumber    String?
 
   shippingCep          String?
   shippingStreet       String?
