@@ -23,7 +23,7 @@ interface ProductFormProps {
     originalPrice?: number;
     outletPrice?: number;
     status?: string;
-    images?: { id: string; url: string; altText?: string | null }[];
+    images?: { id: string; url: string; altText?: string | null; color?: string | null }[];
     stock?: { quantityTotal: number };
   };
 }
@@ -123,11 +123,12 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const [sizes, setSizes] = useState<string[]>(initialData?.sizes ?? []);
   const [colors, setColors] = useState<string[]>(initialData?.colors ?? []);
 
-  const [images, setImages] = useState<{ id: string; url: string }[]>(
-    initialData?.images?.map((i) => ({ id: i.id, url: i.url })) ?? []
+  const [images, setImages] = useState<{ id: string; url: string; color: string | null }[]>(
+    initialData?.images?.map((i) => ({ id: i.id, url: i.url, color: i.color ?? null })) ?? []
   );
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [pendingColors, setPendingColors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -143,6 +144,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     setPendingFiles((prev) => [...prev, ...files]);
+    setPendingColors((prev) => [...prev, ...files.map(() => "")]);
     files.forEach((file) => {
       const url = URL.createObjectURL(file);
       setPreviews((prev) => [...prev, url]);
@@ -151,7 +153,12 @@ export function ProductForm({ initialData }: ProductFormProps) {
 
   function removePending(i: number) {
     setPendingFiles((prev) => prev.filter((_, idx) => idx !== i));
+    setPendingColors((prev) => prev.filter((_, idx) => idx !== i));
     setPreviews((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function setPendingColor(i: number, color: string) {
+    setPendingColors((prev) => prev.map((c, idx) => (idx === i ? color : c)));
   }
 
   async function removeExisting(imageId: string) {
@@ -162,6 +169,16 @@ export function ProductForm({ initialData }: ProductFormProps) {
       body: JSON.stringify({ imageId }),
     });
     setImages((prev) => prev.filter((i) => i.id !== imageId));
+  }
+
+  async function updateImageColor(imageId: string, color: string) {
+    if (!initialData?.id) return;
+    setImages((prev) => prev.map((i) => (i.id === imageId ? { ...i, color: color || null } : i)));
+    await fetch(`/api/admin/products/${initialData.id}/images`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageId, color: color || null }),
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -215,6 +232,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
     if (pendingFiles.length > 0) {
       const fd = new FormData();
       pendingFiles.forEach((f) => fd.append("files", f));
+      pendingColors.forEach((c) => fd.append("colors", c));
       await fetch(`/api/admin/products/${productId}/images`, {
         method: "POST",
         body: fd,
@@ -348,30 +366,63 @@ export function ProductForm({ initialData }: ProductFormProps) {
       {/* Imagens */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Imagens do produto</h2>
+        {colors.length > 0 && (
+          <p className="text-xs text-gray-500 -mt-2">
+            Vincule cada foto a uma cor pra o cliente poder clicar na cor e ver a imagem certa.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-3">
           {images.map((img) => (
-            <div key={img.id} className="relative h-20 w-20 rounded-lg overflow-hidden border border-gray-200">
-              <Image src={img.url} alt="" fill className="object-cover" />
-              <button
-                type="button"
-                onClick={() => removeExisting(img.id)}
-                className="absolute top-0.5 right-0.5 rounded-full bg-red-500 p-0.5 text-white"
-              >
-                <X className="h-3 w-3" />
-              </button>
+            <div key={img.id} className="flex flex-col items-center gap-1.5">
+              <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-gray-200">
+                <Image src={img.url} alt="" fill className="object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeExisting(img.id)}
+                  className="absolute top-0.5 right-0.5 rounded-full bg-red-500 p-0.5 text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              {colors.length > 0 && (
+                <select
+                  value={img.color ?? ""}
+                  onChange={(e) => updateImageColor(img.id, e.target.value)}
+                  className="w-20 rounded-lg border border-gray-300 px-1 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="">Sem cor</option>
+                  {colors.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
             </div>
           ))}
           {previews.map((url, i) => (
-            <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-dashed border-brand-300">
-              <Image src={url} alt="" fill className="object-cover" />
-              <button
-                type="button"
-                onClick={() => removePending(i)}
-                className="absolute top-0.5 right-0.5 rounded-full bg-red-500 p-0.5 text-white"
-              >
-                <X className="h-3 w-3" />
-              </button>
+            <div key={url} className="flex flex-col items-center gap-1.5">
+              <div className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-dashed border-brand-300">
+                <Image src={url} alt="" fill className="object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePending(i)}
+                  className="absolute top-0.5 right-0.5 rounded-full bg-red-500 p-0.5 text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              {colors.length > 0 && (
+                <select
+                  value={pendingColors[i] ?? ""}
+                  onChange={(e) => setPendingColor(i, e.target.value)}
+                  className="w-20 rounded-lg border border-gray-300 px-1 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="">Sem cor</option>
+                  {colors.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
             </div>
           ))}
           <button

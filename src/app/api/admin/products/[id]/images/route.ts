@@ -14,6 +14,7 @@ export async function POST(
 
   const formData = await req.formData();
   const files = formData.getAll("files") as File[];
+  const colors = formData.getAll("colors") as string[];
 
   if (!files.length) {
     return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
@@ -24,7 +25,8 @@ export async function POST(
 
   const results = [];
 
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: `Tipo não permitido: ${file.type}. Use JPEG, PNG ou WebP.` },
@@ -37,12 +39,39 @@ export async function POST(
 
     const url = await uploadProductImage(file, id);
     const image = await prisma.productImage.create({
-      data: { productId: id, url, altText: file.name },
+      data: { productId: id, url, altText: file.name, color: colors[i] || null },
     });
     results.push(image);
   }
 
   return NextResponse.json(results, { status: 201 });
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const admin = getAdminFromRequest(req);
+  if (!admin) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  const { id: productId } = await params;
+  const { imageId, color } = await req.json().catch(() => ({}));
+
+  if (!imageId) {
+    return NextResponse.json({ error: "imageId obrigatório" }, { status: 400 });
+  }
+
+  const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+  if (!image || image.productId !== productId) {
+    return NextResponse.json({ error: "Imagem não encontrada" }, { status: 404 });
+  }
+
+  const updated = await prisma.productImage.update({
+    where: { id: imageId },
+    data: { color: color || null },
+  });
+
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(

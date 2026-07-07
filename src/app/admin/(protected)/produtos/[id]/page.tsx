@@ -38,6 +38,7 @@ export default async function EditProductPage({
             id: img.id,
             url: img.url,
             altText: img.altText,
+            color: img.color,
           })),
           stock: product.stock
             ? { quantityTotal: product.stock.quantityTotal }

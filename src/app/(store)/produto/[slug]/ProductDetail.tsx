@@ -22,14 +22,26 @@ interface Product {
   outletPrice: number;
   status: string;
   quantityAvailable: number;
-  images: { id: string; url: string; altText: string | null }[];
+  images: { id: string; url: string; altText: string | null; color: string | null }[];
 }
 
 export default function ProductDetail({ product, discount }: { product: Product; discount: number }) {
   const router = useRouter();
   const [selectedImg, setSelectedImg] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<string | null>(product.images[0]?.color ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function selectImage(i: number) {
+    setSelectedImg(i);
+    setSelectedColor(product.images[i]?.color ?? null);
+  }
+
+  function selectColor(color: string) {
+    const idx = product.images.findIndex((img) => img.color === color);
+    setSelectedColor(color);
+    if (idx !== -1) setSelectedImg(idx);
+  }
 
   const isSoldOut = product.status === "SOLD_OUT" || product.quantityAvailable === 0;
 
@@ -83,7 +95,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
             {product.images.map((img, i) => (
               <button
                 key={img.id}
-                onClick={() => setSelectedImg(i)}
+                onClick={() => selectImage(i)}
                 className={`relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${i === selectedImg ? "border-brand-500" : "border-gray-200"}`}
               >
                 <Image src={img.url} alt={img.altText ?? ""} fill className="object-cover" />
@@ -108,14 +120,35 @@ export default function ProductDetail({ product, discount }: { product: Product;
           <p className="mt-2 text-gray-600">{product.shortDescription}</p>
         </div>
 
-        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-          {product.sizes.length > 0 && (
-            <span>📏 <strong>{product.sizes.length > 1 ? "Tamanhos" : "Tamanho"}:</strong> {product.sizes.join(", ")}</span>
-          )}
-          {product.colors.length > 0 && (
-            <span>🎨 <strong>{product.colors.length > 1 ? "Cores" : "Cor"}:</strong> {product.colors.join(", ")}</span>
-          )}
-        </div>
+        {product.sizes.length > 0 && (
+          <p className="text-sm text-gray-600">
+            📏 <strong>{product.sizes.length > 1 ? "Tamanhos" : "Tamanho"}:</strong> {product.sizes.join(", ")}
+          </p>
+        )}
+
+        {product.colors.length > 0 && (
+          <div>
+            <p className="text-sm text-gray-600 mb-1.5">
+              🎨 <strong>{product.colors.length > 1 ? "Cores" : "Cor"}:</strong>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {product.colors.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => selectColor(c)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    selectedColor === c
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-gray-300 text-gray-600 hover:border-brand-300"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl bg-brand-50 p-4">
           <p className="text-sm text-gray-500 line-through">{formatCurrency(product.originalPrice)}</p>
