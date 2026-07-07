@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mpPayment } from "@/lib/mercadopago";
+import { finalizeOrderPayment } from "@/lib/finalize-payment";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -34,6 +35,17 @@ export async function POST(req: NextRequest) {
           : {}),
       },
     });
+
+    // Confirma o pedido de imediato quando a resposta já vem definitiva
+    // (cartão aprova/recusa na hora) — não depende só do webhook chegar.
+    if (payment.status && payment.id) {
+      await finalizeOrderPayment(orderId, {
+        id: payment.id,
+        status: payment.status,
+        payment_type_id: payment.payment_type_id,
+        payment_method_id: payment.payment_method_id,
+      });
+    }
 
     const transactionData = payment.point_of_interaction?.transaction_data;
 

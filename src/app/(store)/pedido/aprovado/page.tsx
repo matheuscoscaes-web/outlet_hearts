@@ -6,12 +6,35 @@ import type { OrderItem, Product } from "@prisma/client";
 
 type OrderItemWithProduct = OrderItem & { product: Product };
 
+const STATUS_CONTENT: Record<string, { emoji: string; title: string; text: string }> = {
+  PAID: {
+    emoji: "🎉",
+    title: "Compra confirmada!",
+    text: "Seu pedido foi confirmado com sucesso. Obrigado pela compra!",
+  },
+  PENDING: {
+    emoji: "⏳",
+    title: "Pagamento em análise",
+    text: "Seu pagamento está sendo processado. Você receberá uma confirmação em breve.",
+  },
+  CANCELLED: {
+    emoji: "❌",
+    title: "Pagamento não confirmado",
+    text: "Não conseguimos confirmar esse pagamento. Se o valor foi cobrado, entre em contato — caso contrário, a reserva foi cancelada e o produto voltou ao estoque.",
+  },
+  EXPIRED: {
+    emoji: "⏰",
+    title: "Reserva expirada",
+    text: "O tempo de reserva se encerrou antes da confirmação do pagamento. Se você pagou, entre em contato conosco.",
+  },
+};
+
 export default async function ApprovedPage({
   searchParams,
 }: {
   searchParams: Promise<{ orderId?: string; status?: string }>;
 }) {
-  const { orderId, status } = await searchParams;
+  const { orderId } = await searchParams;
 
   const order = orderId
     ? await prisma.order.findUnique({
@@ -20,19 +43,15 @@ export default async function ApprovedPage({
       })
     : null;
 
-  const isPending = status === "pending";
+  const content = STATUS_CONTENT[order?.status ?? "PENDING"] ?? STATUS_CONTENT.PENDING;
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 sm:py-16 text-center">
-      <div className="text-6xl mb-4">{isPending ? "⏳" : "🎉"}</div>
+      <div className="text-6xl mb-4">{content.emoji}</div>
       <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-gray-900">
-        {isPending ? "Pagamento em análise" : "Compra confirmada!"}
+        {content.title}
       </h1>
-      <p className="text-gray-500 mt-2 mb-6">
-        {isPending
-          ? "Seu pagamento está sendo processado. Você receberá uma confirmação em breve."
-          : "Seu pedido foi confirmado com sucesso. Obrigado pela compra!"}
-      </p>
+      <p className="text-gray-500 mt-2 mb-6">{content.text}</p>
 
       {order && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 text-left mb-6">

@@ -16,11 +16,13 @@ interface Quote {
 export function ShippingLabelButton({
   orderId,
   canShip,
+  deliveryMethod,
   existingLabelUrl,
   existingServiceName,
 }: {
   orderId: string;
   canShip: boolean;
+  deliveryMethod: string;
   existingLabelUrl: string | null;
   existingServiceName: string | null;
 }) {
@@ -31,6 +33,17 @@ export function ShippingLabelButton({
   const [selected, setSelected] = useState<Quote | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+
+  if (deliveryMethod === "PICKUP") {
+    return (
+      <span
+        title="Pedido para retirada na loja, sem etiqueta de envio"
+        className="rounded-lg border border-gray-100 p-1.5 text-gray-300"
+      >
+        <Truck className="h-4 w-4" />
+      </span>
+    );
+  }
 
   if (existingLabelUrl) {
     return (

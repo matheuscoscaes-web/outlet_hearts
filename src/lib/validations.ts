@@ -7,22 +7,41 @@ export const createReservationSchema = z.object({
   clientToken: z.string().min(1),
 });
 
-export const createOrderSchema = z.object({
-  reservationId: z.string().min(1),
-  customerName: z.string().min(2).max(100),
-  customerEmail: z.string().email(),
-  customerPhone: z.string().optional(),
-  customerCpf: z.string().refine(isValidCPF, "CPF inválido"),
-  shippingCep: z
-    .string()
-    .regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
-  shippingStreet: z.string().min(2, "Endereço obrigatório").max(200),
-  shippingNumber: z.string().min(1, "Número obrigatório").max(20),
-  shippingComplement: z.string().max(100).optional(),
-  shippingNeighborhood: z.string().min(2, "Bairro obrigatório").max(100),
-  shippingCity: z.string().min(2, "Cidade obrigatória").max(100),
-  shippingState: z.string().length(2, "UF inválida"),
-});
+export const createOrderSchema = z
+  .object({
+    reservationId: z.string().min(1),
+    customerName: z.string().min(2).max(100),
+    customerEmail: z.string().email(),
+    customerPhone: z.string().optional(),
+    customerCpf: z.string().refine(isValidCPF, "CPF inválido"),
+    deliveryMethod: z.enum(["SHIPPING", "PICKUP"]).default("SHIPPING"),
+    shippingCep: z
+      .string()
+      .regex(/^\d{5}-?\d{3}$/, "CEP inválido")
+      .optional(),
+    shippingStreet: z.string().min(2, "Endereço obrigatório").max(200).optional(),
+    shippingNumber: z.string().min(1, "Número obrigatório").max(20).optional(),
+    shippingComplement: z.string().max(100).optional(),
+    shippingNeighborhood: z.string().min(2, "Bairro obrigatório").max(100).optional(),
+    shippingCity: z.string().min(2, "Cidade obrigatória").max(100).optional(),
+    shippingState: z.string().length(2, "UF inválida").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.deliveryMethod !== "SHIPPING") return;
+    const required: [keyof typeof data, string][] = [
+      ["shippingCep", "CEP obrigatório"],
+      ["shippingStreet", "Endereço obrigatório"],
+      ["shippingNumber", "Número obrigatório"],
+      ["shippingNeighborhood", "Bairro obrigatório"],
+      ["shippingCity", "Cidade obrigatória"],
+      ["shippingState", "UF obrigatória"],
+    ];
+    for (const [field, message] of required) {
+      if (!data[field]) {
+        ctx.addIssue({ code: "custom", path: [field], message });
+      }
+    }
+  });
 
 export const adminLoginSchema = z.object({
   email: z.string().email(),

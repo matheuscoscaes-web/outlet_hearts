@@ -8,6 +8,7 @@ export function OrderAddressModal({
   customerName,
   customerPhone,
   customerCpf,
+  deliveryMethod,
   shippingCep,
   shippingStreet,
   shippingNumber,
@@ -19,6 +20,7 @@ export function OrderAddressModal({
   customerName: string;
   customerPhone: string | null;
   customerCpf: string | null;
+  deliveryMethod: string;
   shippingCep: string | null;
   shippingStreet: string | null;
   shippingNumber: string | null;
@@ -28,6 +30,7 @@ export function OrderAddressModal({
   shippingState: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const isPickup = deliveryMethod === "PICKUP";
   const hasAddress = Boolean(shippingStreet);
 
   return (
@@ -35,7 +38,7 @@ export function OrderAddressModal({
       <button
         onClick={() => setOpen(true)}
         className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700"
-        title="Ver endereço de entrega"
+        title={isPickup ? "Pedido para retirada na loja" : "Ver endereço de entrega"}
       >
         <MapPin className="h-4 w-4" />
       </button>
@@ -46,7 +49,9 @@ export function OrderAddressModal({
             className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-bold text-gray-900 mb-4">Dados para envio</h2>
+            <h2 className="font-bold text-gray-900 mb-4">
+              {isPickup ? "Retirada na loja" : "Dados para envio"}
+            </h2>
 
             <dl className="space-y-3 text-sm">
               <div>
@@ -66,18 +71,27 @@ export function OrderAddressModal({
                 </div>
               )}
               <div className="border-t border-gray-100 pt-3">
-                <dt className="text-xs text-gray-400">Endereço</dt>
-                {hasAddress ? (
-                  <dd className="text-gray-900">
-                    {shippingStreet}, {shippingNumber}
-                    {shippingComplement ? ` — ${shippingComplement}` : ""}
-                    <br />
-                    {shippingNeighborhood} — {shippingCity}/{shippingState}
-                    <br />
-                    CEP {shippingCep ? formatCEP(shippingCep) : "—"}
-                  </dd>
+                {isPickup ? (
+                  <>
+                    <dt className="text-xs text-gray-400">Entrega</dt>
+                    <dd className="text-gray-900">🏬 Cliente vai retirar na loja</dd>
+                  </>
                 ) : (
-                  <dd className="text-gray-400">Não informado (pedido antigo)</dd>
+                  <>
+                    <dt className="text-xs text-gray-400">Endereço</dt>
+                    {hasAddress ? (
+                      <dd className="text-gray-900">
+                        {shippingStreet}, {shippingNumber}
+                        {shippingComplement ? ` — ${shippingComplement}` : ""}
+                        <br />
+                        {shippingNeighborhood} — {shippingCity}/{shippingState}
+                        <br />
+                        CEP {shippingCep ? formatCEP(shippingCep) : "—"}
+                      </dd>
+                    ) : (
+                      <dd className="text-gray-400">Não informado (pedido antigo)</dd>
+                    )}
+                  </>
                 )}
               </div>
             </dl>

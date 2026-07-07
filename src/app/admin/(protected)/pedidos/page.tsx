@@ -113,25 +113,34 @@ export default async function AdminOrdersPage({
                     {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="flex justify-center gap-2">
-                      <OrderAddressModal
-                        customerName={order.customerName}
-                        customerPhone={order.customerPhone}
-                        customerCpf={order.customerCpf}
-                        shippingCep={order.shippingCep}
-                        shippingStreet={order.shippingStreet}
-                        shippingNumber={order.shippingNumber}
-                        shippingComplement={order.shippingComplement}
-                        shippingNeighborhood={order.shippingNeighborhood}
-                        shippingCity={order.shippingCity}
-                        shippingState={order.shippingState}
-                      />
-                      <ShippingLabelButton
-                        orderId={order.id}
-                        canShip={order.status === "PAID"}
-                        existingLabelUrl={order.meLabelUrl}
-                        existingServiceName={order.meServiceName}
-                      />
+                    <div className="flex flex-col items-center gap-1">
+                      {order.deliveryMethod === "PICKUP" && (
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          🏬 Retirada
+                        </span>
+                      )}
+                      <div className="flex justify-center gap-2">
+                        <OrderAddressModal
+                          customerName={order.customerName}
+                          customerPhone={order.customerPhone}
+                          customerCpf={order.customerCpf}
+                          deliveryMethod={order.deliveryMethod}
+                          shippingCep={order.shippingCep}
+                          shippingStreet={order.shippingStreet}
+                          shippingNumber={order.shippingNumber}
+                          shippingComplement={order.shippingComplement}
+                          shippingNeighborhood={order.shippingNeighborhood}
+                          shippingCity={order.shippingCity}
+                          shippingState={order.shippingState}
+                        />
+                        <ShippingLabelButton
+                          orderId={order.id}
+                          canShip={order.status === "PAID"}
+                          deliveryMethod={order.deliveryMethod}
+                          existingLabelUrl={order.meLabelUrl}
+                          existingServiceName={order.meServiceName}
+                        />
+                      </div>
                     </div>
                   </td>
                 </tr>

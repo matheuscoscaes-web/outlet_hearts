@@ -128,13 +128,14 @@ enum ReservationStatus {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  reservationId String      @unique
-  status        OrderStatus @default(PENDING)
-  customerName  String
-  customerEmail String
-  customerPhone String?
-  customerCpf   String?
+  id             String              @id @default(cuid())
+  reservationId  String              @unique
+  status         OrderStatus         @default(PENDING)
+  deliveryMethod OrderDeliveryMethod @default(SHIPPING)
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+  customerCpf    String?
 
   shippingCep          String?
   shippingStreet       String?
@@ -157,6 +158,11 @@ model Order {
   reservation Reservation @relation(fields: [reservationId], references: [id])
   items       OrderItem[]
   payment     Payment?
+}
+
+enum OrderDeliveryMethod {
+  SHIPPING
+  PICKUP
 }
 
 enum OrderStatus {

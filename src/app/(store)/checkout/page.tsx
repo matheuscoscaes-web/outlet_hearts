@@ -45,6 +45,8 @@ function CheckoutContent() {
   const [expired, setExpired] = useState(false);
   const [error, setError] = useState("");
 
+  const [deliveryMethod, setDeliveryMethod] = useState<"SHIPPING" | "PICKUP">("SHIPPING");
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -137,13 +139,18 @@ function CheckoutContent() {
         customerEmail: form.email,
         customerPhone: form.phone,
         customerCpf: form.cpf,
-        shippingCep: form.cep,
-        shippingStreet: form.street,
-        shippingNumber: form.number,
-        shippingComplement: form.complement,
-        shippingNeighborhood: form.neighborhood,
-        shippingCity: form.city,
-        shippingState: form.state,
+        deliveryMethod,
+        ...(deliveryMethod === "SHIPPING"
+          ? {
+              shippingCep: form.cep,
+              shippingStreet: form.street,
+              shippingNumber: form.number,
+              shippingComplement: form.complement,
+              shippingNeighborhood: form.neighborhood,
+              shippingCity: form.city,
+              shippingState: form.state,
+            }
+          : {}),
       }),
     });
 
@@ -417,74 +424,107 @@ function CheckoutContent() {
             maxLength={14}
           />
 
-          <h2 className="font-semibold text-gray-900 mt-2">Endereço de entrega</h2>
-
-          <div>
-            <Input
-              label="CEP"
-              required
-              inputMode="numeric"
-              value={form.cep}
-              onChange={(e) => setForm((f) => ({ ...f, cep: formatCEP(e.target.value) }))}
-              onBlur={handleCepBlur}
-              placeholder="00000-000"
-              maxLength={9}
-            />
-            {cepLoading && <p className="text-xs text-gray-400 mt-1">Buscando endereço...</p>}
-            {cepError && <p className="text-xs text-red-600 mt-1">{cepError}</p>}
-          </div>
-
-          <Input
-            label="Rua"
-            required
-            value={form.street}
-            onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
-            placeholder="Rua das Flores"
-          />
+          <h2 className="font-semibold text-gray-900 mt-2">Como você quer receber?</h2>
 
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Número"
-              required
-              value={form.number}
-              onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
-              placeholder="123"
-            />
-            <Input
-              label="Complemento (opcional)"
-              value={form.complement}
-              onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
-              placeholder="Apto 12"
-            />
+            <button
+              type="button"
+              onClick={() => setDeliveryMethod("SHIPPING")}
+              className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                deliveryMethod === "SHIPPING"
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-gray-200 text-gray-600 hover:border-brand-300"
+              }`}
+            >
+              📦 Receber em casa
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryMethod("PICKUP")}
+              className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                deliveryMethod === "PICKUP"
+                  ? "border-brand-500 bg-brand-50 text-brand-700"
+                  : "border-gray-200 text-gray-600 hover:border-brand-300"
+              }`}
+            >
+              🏬 Retirar na loja
+            </button>
           </div>
 
-          <Input
-            label="Bairro"
-            required
-            value={form.neighborhood}
-            onChange={(e) => setForm((f) => ({ ...f, neighborhood: e.target.value }))}
-            placeholder="Centro"
-          />
+          {deliveryMethod === "PICKUP" ? (
+            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-3">
+              Depois da confirmação do pagamento, entraremos em contato por e-mail ou WhatsApp com o endereço e o horário para retirada.
+            </p>
+          ) : (
+            <>
+              <div>
+                <Input
+                  label="CEP"
+                  required
+                  inputMode="numeric"
+                  value={form.cep}
+                  onChange={(e) => setForm((f) => ({ ...f, cep: formatCEP(e.target.value) }))}
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+                {cepLoading && <p className="text-xs text-gray-400 mt-1">Buscando endereço...</p>}
+                {cepError && <p className="text-xs text-red-600 mt-1">{cepError}</p>}
+              </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
               <Input
-                label="Cidade"
+                label="Rua"
                 required
-                value={form.city}
-                onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                placeholder="São Paulo"
+                value={form.street}
+                onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
+                placeholder="Rua das Flores"
               />
-            </div>
-            <Input
-              label="UF"
-              required
-              maxLength={2}
-              value={form.state}
-              onChange={(e) => setForm((f) => ({ ...f, state: e.target.value.toUpperCase() }))}
-              placeholder="SP"
-            />
-          </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Número"
+                  required
+                  value={form.number}
+                  onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
+                  placeholder="123"
+                />
+                <Input
+                  label="Complemento (opcional)"
+                  value={form.complement}
+                  onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
+                  placeholder="Apto 12"
+                />
+              </div>
+
+              <Input
+                label="Bairro"
+                required
+                value={form.neighborhood}
+                onChange={(e) => setForm((f) => ({ ...f, neighborhood: e.target.value }))}
+                placeholder="Centro"
+              />
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Input
+                    label="Cidade"
+                    required
+                    value={form.city}
+                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                    placeholder="São Paulo"
+                  />
+                </div>
+                <Input
+                  label="UF"
+                  required
+                  maxLength={2}
+                  value={form.state}
+                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value.toUpperCase() }))}
+                  placeholder="SP"
+                />
+              </div>
+            </>
+          )}
 
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
