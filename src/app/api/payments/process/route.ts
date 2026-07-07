@@ -35,7 +35,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ id: payment.id, status: payment.status });
+    const transactionData = payment.point_of_interaction?.transaction_data;
+
+    return NextResponse.json({
+      id: payment.id,
+      status: payment.status,
+      qrCode: transactionData?.qr_code ?? null,
+      qrCodeBase64: transactionData?.qr_code_base64 ?? null,
+      ticketUrl: transactionData?.ticket_url ?? payment.transaction_details?.external_resource_url ?? null,
+    });
   } catch (err) {
     console.error("[POST /api/payments/process]", err);
     return NextResponse.json({ error: "Erro ao processar pagamento" }, { status: 500 });

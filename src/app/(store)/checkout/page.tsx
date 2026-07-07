@@ -61,9 +61,11 @@ function CheckoutContent() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState("");
 
-  const [phase, setPhase] = useState<"form" | "payment">("form");
+  const [phase, setPhase] = useState<"form" | "payment" | "pix">("form");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [pixData, setPixData] = useState<{ qrCode: string; qrCodeBase64: string; ticketUrl: string | null } | null>(null);
+  const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
     initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY!, {
@@ -188,11 +190,39 @@ function CheckoutContent() {
 
     if (data.status === "approved") {
       router.push(`/pedido/aprovado?orderId=${orderId}`);
-    } else if (data.status === "in_process" || data.status === "pending") {
-      router.push(`/pedido/aprovado?orderId=${orderId}&status=pending`);
     } else if (data.status === "rejected") {
       throw new Error("Pagamento recusado. Verifique os dados e tente novamente.");
+    } else if (data.qrCode) {
+      setPixData({ qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64, ticketUrl: data.ticketUrl });
+      setPhase("pix");
+    } else if (data.ticketUrl) {
+      setPixData({ qrCode: "", qrCodeBase64: "", ticketUrl: data.ticketUrl });
+      setPhase("pix");
+    } else {
+      router.push(`/pedido/aprovado?orderId=${orderId}&status=pending`);
     }
+  }
+
+  useEffect(() => {
+    if (phase !== "pix" || !orderId) return;
+
+    const poll = setInterval(async () => {
+      const res = await fetch(`/api/orders/${orderId}/status`);
+      const data = await res.json();
+      if (data.status === "PAID") {
+        clearInterval(poll);
+        router.push(`/pedido/aprovado?orderId=${orderId}`);
+      }
+    }, 3000);
+
+    return () => clearInterval(poll);
+  }, [phase, orderId, router]);
+
+  async function handleCopyPixCode() {
+    if (!pixData?.qrCode) return;
+    await navigator.clipboard.writeText(pixData.qrCode);
+    setPixCopied(true);
+    setTimeout(() => setPixCopied(false), 2500);
   }
 
   if (loading) {
@@ -246,6 +276,61 @@ function CheckoutContent() {
       </div>
     </div>
   );
+
+  if (phase === "pix" && pixData) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
+        <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-gray-900 mb-6">Finalizar compra</h1>
+
+        <Countdown expiresAt={reservation.expiresAt} onExpired={() => setExpired(true)} />
+
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+          {orderSummary}
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5 flex flex-col items-center text-center gap-4">
+            {pixData.qrCodeBase64 ? (
+              <>
+                <h2 className="font-semibold text-gray-900">Pague com Pix</h2>
+                <p className="text-sm text-gray-500 -mt-2">Escaneie o QR Code no app do seu banco</p>
+                <img
+                  src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                  alt="QR Code Pix"
+                  className="h-56 w-56 rounded-lg border border-gray-200"
+                />
+                <div className="w-full">
+                  <p className="text-xs text-gray-500 mb-1.5">Ou copie o código Pix Copia e Cola:</p>
+                  <div className="flex gap-2">
+                    <input
+                      readOnly
+                      value={pixData.qrCode}
+                      className="flex-1 min-w-0 rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-600 truncate"
+                    />
+                    <Button onClick={handleCopyPixCode} variant={pixCopied ? "secondary" : "primary"} className="shrink-0">
+                      {pixCopied ? "Copiado!" : "Copiar"}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="font-semibold text-gray-900">Pague com Boleto</h2>
+                <p className="text-sm text-gray-500 -mt-2">Abra o boleto para pagar no banco ou lotérica</p>
+                {pixData.ticketUrl && (
+                  <a href={pixData.ticketUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Button className="w-full">Abrir boleto</Button>
+                  </a>
+                )}
+              </>
+            )}
+            <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-brand-600" />
+              Aguardando confirmação do pagamento...
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "payment" && preferenceId && orderId) {
     return (
