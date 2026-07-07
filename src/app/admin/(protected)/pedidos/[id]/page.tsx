@@ -35,7 +35,7 @@ export default async function AdminOrderDetailPage({
     include: {
       items: {
         include: {
-          product: { include: { images: { orderBy: { order: "asc" }, take: 1 } } },
+          product: { include: { images: { orderBy: { order: "asc" } } } },
           productVariant: true,
         },
       },
@@ -152,7 +152,10 @@ export default async function AdminOrderDetailPage({
         <h2 className="font-semibold text-gray-900 mb-3">Itens do pedido</h2>
         <div className="space-y-3">
           {order.items.map((item) => {
-            const img = item.product.images[0];
+            const exactImg = item.productVariant
+              ? item.product.images.find((i) => i.color === item.productVariant!.color)
+              : undefined;
+            const img = exactImg ?? item.product.images[0];
             return (
               <div key={item.id} className="flex items-center gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                 <div className="relative h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
@@ -168,6 +171,11 @@ export default async function AdminOrderDetailPage({
                     Qtd: {item.quantity}
                     {item.productVariant && ` · Cor: ${item.productVariant.color}`}
                   </p>
+                  {item.productVariant && !exactImg && (
+                    <p className="text-[11px] text-amber-600">
+                      Nenhuma foto vinculada a essa cor — mostrando a foto padrão do produto.
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400">{formatCurrency(Number(item.unitPrice))} un.</p>
