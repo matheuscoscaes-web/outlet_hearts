@@ -58,6 +58,24 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[POST /api/payments/process]", err);
-    return NextResponse.json({ error: "Erro ao processar pagamento" }, { status: 500 });
+
+    // Guarda o erro real (sem vazar detalhe sensível pro cliente) pra dar
+    // pra diagnosticar depois — hoje isso desaparecia num "erro interno"
+    // genérico sem deixar rastro nenhum no banco.
+    const cause = err && typeof err === "object" && "cause" in err ? (err as { cause?: unknown }).cause : undefined;
+    const errorDetails = {
+      message: err instanceof Error ? err.message : String(err),
+      cause: cause ?? null,
+      capturedAt: new Date().toISOString(),
+    };
+
+    await prisma.payment
+      .update({ where: { orderId }, data: { gatewayResponse: errorDetails } })
+      .catch(() => {});
+
+    return NextResponse.json(
+      { error: "Erro ao processar pagamento. Tente novamente ou use outra forma de pagamento." },
+      { status: 500 }
+    );
   }
 }
