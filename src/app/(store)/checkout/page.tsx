@@ -9,6 +9,7 @@ import { Countdown } from "@/components/store/Countdown";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency, formatCPF, formatCEP } from "@/lib/utils";
+import { translatePaymentRejection } from "@/lib/payment-messages";
 import Image from "next/image";
 
 const PaymentBrick = dynamic(
@@ -44,6 +45,7 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [expired, setExpired] = useState(false);
   const [error, setError] = useState("");
+  const [paymentError, setPaymentError] = useState("");
 
   const [deliveryMethod, setDeliveryMethod] = useState<"SHIPPING" | "PICKUP">("SHIPPING");
 
@@ -222,30 +224,42 @@ function CheckoutContent() {
   }
 
   async function handleBrickSubmit({ formData }: IPaymentFormData) {
-    const res = await fetch("/api/payments/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formData, orderId }),
-    });
+    setPaymentError("");
+    try {
+      const res = await fetch("/api/payments/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData, orderId }),
+      });
 
-    if (!res.ok) {
-      throw new Error("Erro ao processar pagamento");
-    }
+      if (!res.ok) {
+        throw new Error("Erro ao processar pagamento. Tente novamente ou use outra forma de pagamento.");
+      }
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.status === "approved") {
-      router.push(`/pedido/aprovado?orderId=${orderId}`);
-    } else if (data.status === "rejected") {
-      throw new Error("Pagamento recusado. Verifique os dados e tente novamente.");
-    } else if (data.qrCode) {
-      setPixData({ qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64, ticketUrl: data.ticketUrl });
-      setPhase("pix");
-    } else if (data.ticketUrl) {
-      setPixData({ qrCode: "", qrCodeBase64: "", ticketUrl: data.ticketUrl });
-      setPhase("pix");
-    } else {
+      if (data.status === "approved") {
+        router.push(`/pedido/aprovado?orderId=${orderId}`);
+        return;
+      }
+      if (data.status === "rejected") {
+        throw new Error(translatePaymentRejection(data.statusDetail));
+      }
+      if (data.qrCode) {
+        setPixData({ qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64, ticketUrl: data.ticketUrl });
+        setPhase("pix");
+        return;
+      }
+      if (data.ticketUrl) {
+        setPixData({ qrCode: "", qrCodeBase64: "", ticketUrl: data.ticketUrl });
+        setPhase("pix");
+        return;
+      }
       router.push(`/pedido/aprovado?orderId=${orderId}&status=pending`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao processar pagamento. Tente novamente.";
+      setPaymentError(message);
+      throw err;
     }
   }
 
@@ -407,6 +421,11 @@ function CheckoutContent() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Pagamento</h2>
+            {paymentError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">
+                {paymentError}
+              </div>
+            )}
             <PaymentBrick
               initialization={{
                 amount: total,

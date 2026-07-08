@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       id: payment.id,
       status: payment.status,
+      statusDetail: payment.status_detail ?? null,
       qrCode: transactionData?.qr_code ?? null,
       qrCodeBase64: transactionData?.qr_code_base64 ?? null,
       ticketUrl: transactionData?.ticket_url ?? payment.transaction_details?.external_resource_url ?? null,
