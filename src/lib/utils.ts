@@ -9,6 +9,13 @@ export function calcDiscount(original: number, outlet: number): number {
   return Math.round(((original - outlet) / original) * 100);
 }
 
+// Evita imprecisão de ponto flutuante (ex: 89.9 + 15.36 = 105.26000000000001)
+// em valores monetários somados de fontes diferentes (produto + frete).
+// O Mercado Pago recusa "transaction_amount" com mais de 2 casas decimais.
+export function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 export function slugify(text: string): string {
   return text
     .normalize("NFD")

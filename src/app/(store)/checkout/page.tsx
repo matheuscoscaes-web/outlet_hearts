@@ -8,7 +8,7 @@ import type { IPaymentFormData } from "@mercadopago/sdk-react/esm/bricks/payment
 import { Countdown } from "@/components/store/Countdown";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { formatCurrency, formatCPF, formatCEP } from "@/lib/utils";
+import { formatCurrency, formatCPF, formatCEP, roundCurrency } from "@/lib/utils";
 import { translatePaymentRejection } from "@/lib/payment-messages";
 import Image from "next/image";
 
@@ -72,6 +72,7 @@ function CheckoutContent() {
 
   const [phase, setPhase] = useState<"form" | "payment" | "pix">("form");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderTotal, setOrderTotal] = useState<number | null>(null);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [pixData, setPixData] = useState<{ qrCode: string; qrCodeBase64: string; ticketUrl: string | null } | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
@@ -218,6 +219,7 @@ function CheckoutContent() {
     }
 
     setOrderId(orderData.id);
+    setOrderTotal(Number(orderData.totalAmount));
     setPreferenceId(payData.preferenceId);
     setPhase("payment");
     setSubmitting(false);
@@ -308,7 +310,7 @@ function CheckoutContent() {
 
   const productTotal = Number(reservation.product.outletPrice) * reservation.quantity;
   const shippingCost = deliveryMethod === "SHIPPING" ? shippingQuote?.price ?? 0 : 0;
-  const total = productTotal + shippingCost;
+  const total = roundCurrency(productTotal + shippingCost);
   const shippingPending = deliveryMethod === "SHIPPING" && !shippingQuote;
 
   const orderSummary = (
@@ -428,7 +430,7 @@ function CheckoutContent() {
             )}
             <PaymentBrick
               initialization={{
-                amount: total,
+                amount: orderTotal ?? total,
                 preferenceId,
                 payer: { email: form.email },
               }}

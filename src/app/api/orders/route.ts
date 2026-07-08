@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validations";
 import { calculateRequiredShipping } from "@/lib/melhorenvio";
+import { roundCurrency } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (reservation.expiresAt < new Date()) throw new Error("RESERVATION_EXPIRED");
 
     const unitPrice = Number(reservation.product.outletPrice);
-    const productTotal = unitPrice * reservation.quantity;
+    const productTotal = roundCurrency(unitPrice * reservation.quantity);
 
     // Frete calculado no servidor (nunca confia em valor vindo do cliente):
     // Sedex pra RJ, PAC pro resto do Brasil. Retirada na loja não tem frete.
@@ -51,11 +52,11 @@ export async function POST(req: NextRequest) {
     let shippingServiceName: string | null = null;
     if (deliveryMethod === "SHIPPING") {
       const quote = await calculateRequiredShipping(shippingCep!, shippingState!, productTotal);
-      shippingCost = quote.price;
+      shippingCost = roundCurrency(quote.price);
       shippingServiceName = quote.serviceName;
     }
 
-    const totalAmount = productTotal + shippingCost;
+    const totalAmount = roundCurrency(productTotal + shippingCost);
 
     const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Reconfirma a reserva dentro da transação (o cálculo de frete acima

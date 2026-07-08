@@ -1,3 +1,5 @@
+import { roundCurrency } from "@/lib/utils";
+
 const BASE_URL =
   process.env.MELHORENVIO_SANDBOX === "true"
     ? "https://sandbox.melhorenvio.com.br"
@@ -109,7 +111,7 @@ export async function calculateRequiredShipping(
     throw new Error(`Frete ${serviceName} indisponível para esse CEP no momento`);
   }
 
-  return { serviceId, serviceName, price: Number(match.price) };
+  return { serviceId, serviceName, price: roundCurrency(Number(match.price)) };
 }
 
 function fromAddress() {
