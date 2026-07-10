@@ -25,11 +25,25 @@ model AdminUser {
 
   stockLogs        StockLog[]
   variantStockLogs VariantStockLog[]
+  resetTokens      PasswordResetToken[]
 }
 
 enum AdminRole {
   SUPER_ADMIN
   OPERATOR
+}
+
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  adminUserId String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
 }
 
 model Product {

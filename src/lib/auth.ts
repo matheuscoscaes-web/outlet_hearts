@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { createHash, randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -44,5 +45,13 @@ export function getAdminFromRequest(
 }
 
 export function generateClientToken(): string {
-  return `ct_${crypto.randomUUID().replace(/-/g, "")}`;
+  return `ct_${randomUUID().replace(/-/g, "")}`;
+}
+
+export function generatePasswordResetToken(): string {
+  return randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "");
+}
+
+export function hashPasswordResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }

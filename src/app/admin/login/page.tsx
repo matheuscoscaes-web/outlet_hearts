@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -83,6 +84,13 @@ export default function AdminLoginPage() {
             <Button type="submit" loading={loading} className="w-full mt-2">
               Entrar
             </Button>
+
+            <Link
+              href="/admin/esqueci-senha"
+              className="text-center text-sm font-medium text-gray-500 hover:text-gray-700"
+            >
+              Esqueci minha senha
+            </Link>
           </form>
         </div>
       </div>
