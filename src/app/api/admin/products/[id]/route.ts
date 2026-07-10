@@ -68,6 +68,20 @@ export async function DELETE(
     );
   }
 
-  await prisma.product.delete({ where: { id } });
+  const reservationWithOrder = await prisma.reservation.findFirst({
+    where: { productId: id, order: { isNot: null } },
+  });
+  if (reservationWithOrder) {
+    return NextResponse.json(
+      { error: "Produto tem pedidos vinculados. Desative-o em vez de excluir." },
+      { status: 409 }
+    );
+  }
+
+  await prisma.$transaction([
+    prisma.reservation.deleteMany({ where: { productId: id } }),
+    prisma.product.delete({ where: { id } }),
+  ]);
+
   return NextResponse.json({ ok: true });
 }

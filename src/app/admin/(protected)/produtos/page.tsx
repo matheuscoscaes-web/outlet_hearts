@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import StockAdjustModal from "./StockAdjustModal";
 import { StatusToggle } from "@/components/admin/StatusToggle";
+import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import type { Product, ProductImage, Stock, ProductVariant } from "@prisma/client";
 
 export const revalidate = 0;
@@ -131,6 +132,7 @@ export default async function AdminProductsPage({
                           <Edit className="h-4 w-4" />
                         </button>
                       </Link>
+                      <DeleteProductButton productId={p.id} productName={p.name} />
                     </div>
                   </td>
                 </tr>
