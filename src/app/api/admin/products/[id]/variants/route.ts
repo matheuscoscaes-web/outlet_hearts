@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const bodySchema = z.object({
   color: z.string().min(1),
+  size: z.string().optional().default(""),
   quantityTotal: z.number().int().min(0),
 });
 
@@ -21,19 +22,23 @@ export async function POST(
     return NextResponse.json({ error: "Dados inválidos", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { color, quantityTotal } = parsed.data;
+  const { color, size, quantityTotal } = parsed.data;
 
   const existing = await prisma.productVariant.findUnique({
-    where: { productId_color: { productId, color } },
+    where: { productId_color_size: { productId, color, size } },
   });
   if (existing) {
-    return NextResponse.json({ error: "Já existe estoque cadastrado para essa cor" }, { status: 409 });
+    return NextResponse.json(
+      { error: size ? "Já existe estoque cadastrado para essa cor e tamanho" : "Já existe estoque cadastrado para essa cor" },
+      { status: 409 }
+    );
   }
 
   const variant = await prisma.productVariant.create({
     data: {
       productId,
       color,
+      size,
       quantityTotal,
       quantityReserved: 0,
       quantitySold: 0,
@@ -42,7 +47,7 @@ export async function POST(
           adminUserId: admin.id,
           reason: "initial_stock",
           delta: quantityTotal,
-          note: "Estoque inicial da cor",
+          note: size ? "Estoque inicial da cor/tamanho" : "Estoque inicial da cor",
         },
       },
     },

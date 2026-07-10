@@ -23,44 +23,65 @@ interface Product {
   status: string;
   quantityAvailable: number;
   images: { id: string; url: string; altText: string | null; color: string | null }[];
-  variants: { color: string; quantityAvailable: number }[];
+  variants: { color: string; size: string; quantityAvailable: number }[];
 }
 
 export default function ProductDetail({ product, discount }: { product: Product; discount: number }) {
   const router = useRouter();
   const hasVariants = product.variants.length > 0;
+  const hasSizeVariants = product.variants.some((v) => v.size);
   const [selectedImg, setSelectedImg] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(
     hasVariants ? null : product.images[0]?.color ?? null
   );
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   function selectImage(i: number) {
     setSelectedImg(i);
     const color = product.images[i]?.color ?? null;
-    if (!hasVariants || (color && variantAvailable(color) > 0)) {
+    if (!hasVariants || (color && colorAvailable(color) > 0)) {
       setSelectedColor(color);
+      setSelectedSize(null);
     }
   }
 
-  function variantAvailable(color: string): number {
-    return product.variants.find((v) => v.color === color)?.quantityAvailable ?? 0;
+  // Disponibilidade total de uma cor (soma todos os tamanhos dela).
+  function colorAvailable(color: string): number {
+    return product.variants
+      .filter((v) => v.color === color)
+      .reduce((sum, v) => sum + v.quantityAvailable, 0);
+  }
+
+  function variantAvailable(color: string, size: string): number {
+    return product.variants.find((v) => v.color === color && v.size === size)?.quantityAvailable ?? 0;
   }
 
   function selectColor(color: string) {
-    if (hasVariants && variantAvailable(color) === 0) return;
+    if (hasVariants && colorAvailable(color) === 0) return;
     const idx = product.images.findIndex((img) => img.color === color);
     setSelectedColor(color);
+    setSelectedSize(null);
     if (idx !== -1) setSelectedImg(idx);
+  }
+
+  function selectSize(size: string) {
+    if (!selectedColor || variantAvailable(selectedColor, size) === 0) return;
+    setSelectedSize(size);
   }
 
   const isSoldOut = product.status === "SOLD_OUT" || product.quantityAvailable === 0;
   const needsColor = hasVariants && !selectedColor;
+  const needsSize = hasVariants && hasSizeVariants && !!selectedColor && !selectedSize;
 
   async function handleBuy() {
     if (needsColor) {
       setError("Selecione uma cor pra continuar.");
+      return;
+    }
+    if (needsSize) {
+      setError("Selecione um tamanho pra continuar.");
       return;
     }
 
@@ -81,7 +102,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
         productId: product.id,
         quantity: 1,
         clientToken,
-        ...(hasVariants ? { color: selectedColor } : {}),
+        ...(hasVariants ? { color: selectedColor, ...(hasSizeVariants ? { size: selectedSize } : {}) } : {}),
       }),
     });
 
@@ -143,7 +164,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
           <p className="mt-2 text-gray-600">{product.shortDescription}</p>
         </div>
 
-        {product.sizes.length > 0 && (
+        {product.sizes.length > 0 && !hasSizeVariants && (
           <p className="text-sm text-gray-600">
             📏 <strong>{product.sizes.length > 1 ? "Tamanhos" : "Tamanho"}:</strong> {product.sizes.join(", ")}
           </p>
@@ -159,7 +180,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
             </p>
             <div className="flex flex-wrap gap-2">
               {product.colors.map((c) => {
-                const unavailable = hasVariants && variantAvailable(c) === 0;
+                const unavailable = hasVariants && colorAvailable(c) === 0;
                 return (
                   <button
                     key={c}
@@ -180,9 +201,46 @@ export default function ProductDetail({ product, discount }: { product: Product;
                 );
               })}
             </div>
-            {hasVariants && selectedColor && (
+            {hasVariants && !hasSizeVariants && selectedColor && (
               <p className="text-xs text-gray-500 mt-1.5">
-                {variantAvailable(selectedColor)} {variantAvailable(selectedColor) === 1 ? "disponível" : "disponíveis"} na cor {selectedColor}
+                {colorAvailable(selectedColor)} {colorAvailable(selectedColor) === 1 ? "disponível" : "disponíveis"} na cor {selectedColor}
+              </p>
+            )}
+          </div>
+        )}
+
+        {hasSizeVariants && selectedColor && (
+          <div>
+            <p className="text-sm text-gray-600 mb-1.5">
+              📏 <strong>{product.sizes.length > 1 ? "Tamanhos" : "Tamanho"}:</strong>
+              {!selectedSize && <span className="text-brand-600 font-medium"> escolha um</span>}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {product.sizes.map((s) => {
+                const unavailable = variantAvailable(selectedColor, s) === 0;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={unavailable}
+                    onClick={() => selectSize(s)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selectedSize === s
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : unavailable
+                        ? "border-gray-200 text-gray-300 cursor-not-allowed line-through"
+                        : "border-gray-300 text-gray-600 hover:border-brand-300"
+                    }`}
+                  >
+                    {s}
+                    {unavailable && " (esgotado)"}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedSize && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                {variantAvailable(selectedColor, selectedSize)} {variantAvailable(selectedColor, selectedSize) === 1 ? "disponível" : "disponíveis"} na cor {selectedColor}, tamanho {selectedSize}
               </p>
             )}
           </div>
@@ -214,7 +272,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
             size="lg"
             onClick={handleBuy}
             loading={loading}
-            disabled={isSoldOut || needsColor}
+            disabled={isSoldOut || needsColor || needsSize}
             className="w-full"
           >
             {isSoldOut
@@ -223,6 +281,8 @@ export default function ProductDetail({ product, discount }: { product: Product;
               ? "Reservando..."
               : needsColor
               ? "Selecione uma cor"
+              : needsSize
+              ? "Selecione um tamanho"
               : "⚡ Comprar agora"}
           </Button>
           {!isSoldOut && (
@@ -242,7 +302,7 @@ export default function ProductDetail({ product, discount }: { product: Product;
               size="lg"
               onClick={handleBuy}
               loading={loading}
-              disabled={isSoldOut || needsColor}
+              disabled={isSoldOut || needsColor || needsSize}
               className="flex-1"
             >
               {isSoldOut
@@ -251,6 +311,8 @@ export default function ProductDetail({ product, discount }: { product: Product;
                 ? "Reservando..."
                 : needsColor
                 ? "Selecione uma cor"
+                : needsSize
+                ? "Selecione um tamanho"
                 : "⚡ Comprar agora"}
             </Button>
           </div>

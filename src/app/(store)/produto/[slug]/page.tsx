@@ -28,6 +28,7 @@ export default async function ProductPage({
         quantityAvailable: calcProductAvailable(dbProduct.stock, dbProduct.variants),
         variants: dbProduct.variants.map((v) => ({
           color: v.color,
+          size: v.size,
           quantityAvailable: calcAvailable(v.quantityTotal, v.quantityReserved, v.quantitySold),
         })),
       };

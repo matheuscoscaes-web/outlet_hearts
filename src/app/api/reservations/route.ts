@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { productId, quantity, clientToken, color } = parsed.data;
+  const { productId, quantity, clientToken, color, size } = parsed.data;
 
   try {
     const reservation = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Produto com estoque por cor: trava a variante específica.
+      // Produto com estoque por cor (e, se aplicável, tamanho): trava a variante específica.
       if (color) {
         const variant = await tx.$queryRaw<
           {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         >`
           SELECT id, "quantityTotal", "quantityReserved", "quantitySold"
           FROM "ProductVariant"
-          WHERE "productId" = ${productId} AND "color" = ${color}
+          WHERE "productId" = ${productId} AND "color" = ${color} AND "size" = ${size ?? ""}
           FOR UPDATE
         `;
 

@@ -26,8 +26,14 @@ interface ProductFormProps {
     status?: string;
     images?: { id: string; url: string; altText?: string | null; color?: string | null }[];
     stock?: { quantityTotal: number };
-    variants?: { id: string; color: string; quantityTotal: number }[];
+    variants?: { id: string; color: string; size: string; quantityTotal: number }[];
   };
+}
+
+// Chave única de uma combinação cor+tamanho nos estados locais do form.
+// Tamanho vazio ("") representa "sem controle de tamanho" (estoque só por cor).
+function variantKey(color: string, size: string) {
+  return `${color}|||${size}`;
 }
 
 function TagListInput({
@@ -125,8 +131,11 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const [sizes, setSizes] = useState<string[]>(initialData?.sizes ?? []);
   const [colors, setColors] = useState<string[]>(initialData?.colors ?? []);
   const [variants, setVariants] = useState(initialData?.variants ?? []);
-  const [colorStockInputs, setColorStockInputs] = useState<Record<string, string>>({});
+  // Estoque por combinação cor+tamanho (calçados, por ex.), chaveado por variantKey().
+  // Quando o produto não tem tamanhos cadastrados, o tamanho fica "" (estoque só por cor).
+  const [variantStockInputs, setVariantStockInputs] = useState<Record<string, string>>({});
   const [creatingVariant, setCreatingVariant] = useState<string | null>(null);
+  const usesSizeVariants = sizes.length > 0 && colors.length > 0;
 
   const [images, setImages] = useState<{ id: string; url: string; color: string | null }[]>(
     initialData?.images?.map((i) => ({ id: i.id, url: i.url, color: i.color ?? null })) ?? []
@@ -186,20 +195,21 @@ export function ProductForm({ initialData }: ProductFormProps) {
     });
   }
 
-  async function createVariant(color: string) {
+  async function createVariant(color: string, size: string) {
     if (!initialData?.id) return;
-    const quantityTotal = Number(colorStockInputs[color] ?? "0");
-    setCreatingVariant(color);
+    const key = variantKey(color, size);
+    const quantityTotal = Number(variantStockInputs[key] ?? "0");
+    setCreatingVariant(key);
     const res = await fetch(`/api/admin/products/${initialData.id}/variants`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ color, quantityTotal }),
+      body: JSON.stringify({ color, size, quantityTotal }),
     });
     const data = await res.json();
     setCreatingVariant(null);
     if (res.ok) {
       setVariants((prev) => [...prev, data]);
-      setColorStockInputs((prev) => ({ ...prev, [color]: "" }));
+      setVariantStockInputs((prev) => ({ ...prev, [key]: "" }));
     }
   }
 
@@ -261,14 +271,19 @@ export function ProductForm({ initialData }: ProductFormProps) {
       });
     }
 
-    // Estoque por cor (só cria variante pra cor que recebeu quantidade)
-    for (const color of colors) {
-      const qty = colorStockInputs[color];
+    // Estoque por cor (e tamanho, se cadastrado) — só cria variante pra
+    // combinação que recebeu quantidade.
+    const combos: { color: string; size: string }[] = usesSizeVariants
+      ? colors.flatMap((color) => sizes.map((size) => ({ color, size })))
+      : colors.map((color) => ({ color, size: "" }));
+
+    for (const { color, size } of combos) {
+      const qty = variantStockInputs[variantKey(color, size)];
       if (qty !== undefined && qty !== "") {
         await fetch(`/api/admin/products/${productId}/variants`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ color, quantityTotal: Number(qty) }),
+          body: JSON.stringify({ color, size, quantityTotal: Number(qty) }),
         });
       }
     }
@@ -402,26 +417,35 @@ export function ProductForm({ initialData }: ProductFormProps) {
         )}
       </div>
 
-      {/* Estoque por cor */}
+      {/* Estoque por cor (e tamanho, quando o produto tem tamanhos cadastrados — ex: calçados) */}
       {colors.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-3">
-          <h2 className="font-semibold text-gray-900">Estoque por cor</h2>
+          <h2 className="font-semibold text-gray-900">
+            {usesSizeVariants ? "Estoque por cor e tamanho" : "Estoque por cor"}
+          </h2>
           <p className="text-xs text-gray-500 -mt-2">
-            Defina a quantidade de cada cor. A partir da primeira cor com estoque definido, o cliente passa a escolher a cor antes de comprar.
+            {usesSizeVariants
+              ? "Defina a quantidade de cada combinação de cor e numeração — ideal pra calçados, onde a mesma cor tem várias grades. A partir da primeira combinação com estoque definido, o cliente passa a escolher cor e tamanho antes de comprar."
+              : "Defina a quantidade de cada cor. A partir da primeira cor com estoque definido, o cliente passa a escolher a cor antes de comprar."}
           </p>
           <div className="space-y-2">
-            {colors.map((color) => {
-              const variant = variants.find((v) => v.color === color);
+            {(usesSizeVariants
+              ? colors.flatMap((color) => sizes.map((size) => ({ color, size })))
+              : colors.map((color) => ({ color, size: "" }))
+            ).map(({ color, size }) => {
+              const key = variantKey(color, size);
+              const rowLabel = size ? `${color} · ${size}` : color;
+              const variant = variants.find((v) => v.color === color && v.size === size);
               if (variant) {
                 return (
-                  <div key={color} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
-                    <span className="text-sm text-gray-700">{color}</span>
+                  <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                    <span className="text-sm text-gray-700">{rowLabel}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900">{variant.quantityTotal} un.</span>
                       {isEditing && (
                         <VariantStockAdjustModal
                           variantId={variant.id}
-                          colorLabel={color}
+                          label={rowLabel}
                           currentStock={variant.quantityTotal}
                           onAdjusted={(newTotal) =>
                             setVariants((prev) => prev.map((v) => (v.id === variant.id ? { ...v, quantityTotal: newTotal } : v)))
@@ -433,25 +457,25 @@ export function ProductForm({ initialData }: ProductFormProps) {
                 );
               }
               return (
-                <div key={color} className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2">
-                  <span className="text-sm text-gray-700">{color}</span>
+                <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2">
+                  <span className="text-sm text-gray-700">{rowLabel}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min="0"
-                      value={colorStockInputs[color] ?? ""}
-                      onChange={(e) => setColorStockInputs((prev) => ({ ...prev, [color]: e.target.value }))}
+                      value={variantStockInputs[key] ?? ""}
+                      onChange={(e) => setVariantStockInputs((prev) => ({ ...prev, [key]: e.target.value }))}
                       placeholder="Qtd."
                       className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                     {isEditing && (
                       <button
                         type="button"
-                        disabled={!colorStockInputs[color] || creatingVariant === color}
-                        onClick={() => createVariant(color)}
+                        disabled={!variantStockInputs[key] || creatingVariant === key}
+                        onClick={() => createVariant(color, size)}
                         className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
                       >
-                        {creatingVariant === color ? "Criando..." : "Criar estoque"}
+                        {creatingVariant === key ? "Criando..." : "Criar estoque"}
                       </button>
                     )}
                   </div>

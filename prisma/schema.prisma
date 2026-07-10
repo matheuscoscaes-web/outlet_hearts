@@ -120,14 +120,20 @@ model StockLog {
   adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
 }
 
-// Estoque por cor — opcional. Um produto só passa a usar esse fluxo
-// quando o admin cadastra pelo menos uma variante (cor + quantidade)
-// para ele; produtos sem nenhuma linha aqui continuam usando o Stock
-// (por produto) de sempre, sem qualquer mudança de comportamento.
+// Estoque por cor (e, opcionalmente, tamanho/número) — opcional. Um produto
+// só passa a usar esse fluxo quando o admin cadastra pelo menos uma variante
+// (cor + quantidade, ou cor + tamanho + quantidade) para ele; produtos sem
+// nenhuma linha aqui continuam usando o Stock (por produto) de sempre, sem
+// qualquer mudança de comportamento. O campo `size` é usado principalmente
+// por calçados (numeração), onde a mesma cor tem várias grades de tamanho;
+// fica como string vazia quando o produto não tem controle de estoque por
+// tamanho — precisa de default fixo (não nulo) pra a constraint de unicidade
+// abaixo continuar bloqueando cores duplicadas nesse caso.
 model ProductVariant {
   id               String   @id @default(cuid())
   productId        String
   color            String
+  size             String   @default("")
   quantityTotal    Int      @default(0)
   quantityReserved Int      @default(0)
   quantitySold     Int      @default(0)
@@ -139,7 +145,7 @@ model ProductVariant {
   reservations Reservation[]
   orderItems   OrderItem[]
 
-  @@unique([productId, color])
+  @@unique([productId, color, size])
 }
 
 model VariantStockLog {

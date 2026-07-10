@@ -178,6 +178,7 @@ export default async function AdminOrderDetailPage({
                   <p className="text-xs text-gray-500">
                     Qtd: {item.quantity}
                     {item.productVariant && ` · Cor: ${item.productVariant.color}`}
+                    {item.productVariant?.size && ` · Tamanho: ${item.productVariant.size}`}
                   </p>
                   {item.productVariant && !exactImg && (
                     <p className="text-[11px] text-amber-600">

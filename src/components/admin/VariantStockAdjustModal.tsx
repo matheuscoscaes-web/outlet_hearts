@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/Input";
 
 export default function VariantStockAdjustModal({
   variantId,
-  colorLabel,
+  label,
   currentStock,
   onAdjusted,
 }: {
   variantId: string;
-  colorLabel: string;
+  label: string;
   currentStock: number;
   onAdjusted: (newTotal: number) => void;
 }) {
@@ -64,7 +64,7 @@ export default function VariantStockAdjustModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-gray-900 mb-1">Ajustar estoque</h2>
-            <p className="text-sm text-gray-500 mb-4">Cor: {colorLabel} · Atual: {currentStock} unidades</p>
+            <p className="text-sm text-gray-500 mb-4">{label} · Atual: {currentStock} unidades</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
