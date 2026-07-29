@@ -20,8 +20,11 @@ export async function GET(
 
   // Enquanto o pedido está pendente (pix/boleto), consulta o Mercado Pago
   // diretamente em vez de depender só do webhook chegar — o front-end já
-  // faz polling nessa rota enquanto mostra o QR Code.
-  if (order.status === "PENDING" && order.payment?.gatewayId) {
+  // faz polling nessa rota enquanto mostra o QR Code. Também reconsulta se
+  // o pedido já expirou: o cliente pode ter pago depois do prazo da reserva
+  // (o QR Code do Pix continua válido no Mercado Pago por mais tempo), e
+  // finalizeOrderPayment sabe tratar esse caso sem duplicar estoque.
+  if ((order.status === "PENDING" || order.status === "EXPIRED") && order.payment?.gatewayId) {
     try {
       const mpData = await mpPayment.get({ id: Number(order.payment.gatewayId) });
       await finalizeOrderPayment(orderId, mpData);

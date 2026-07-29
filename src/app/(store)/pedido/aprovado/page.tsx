@@ -25,7 +25,12 @@ const STATUS_CONTENT: Record<string, { emoji: string; title: string; text: strin
   EXPIRED: {
     emoji: "⏰",
     title: "Reserva expirada",
-    text: "O tempo de reserva se encerrou antes da confirmação do pagamento. Se você pagou, entre em contato conosco.",
+    text: "O tempo de reserva se encerrou antes da confirmação do pagamento e o produto voltou ao estoque. Se o pagamento chegou a ser aprovado, o valor será estornado automaticamente.",
+  },
+  REFUNDED: {
+    emoji: "↩️",
+    title: "Pagamento estornado",
+    text: "O tempo de reserva se encerrou antes da confirmação do pagamento e o produto voltou ao estoque. O valor pago foi estornado automaticamente.",
   },
 };
 

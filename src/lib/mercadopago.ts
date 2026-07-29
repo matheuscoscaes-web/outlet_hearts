@@ -1,4 +1,4 @@
-import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+import { MercadoPagoConfig, Preference, Payment, PaymentRefund } from "mercadopago";
 import crypto from "crypto";
 
 export const mp = new MercadoPagoConfig({
@@ -7,6 +7,7 @@ export const mp = new MercadoPagoConfig({
 
 export const mpPreference = new Preference(mp);
 export const mpPayment = new Payment(mp);
+export const mpPaymentRefund = new PaymentRefund(mp);
 
 export interface CreatePreferenceInput {
   orderId: string;

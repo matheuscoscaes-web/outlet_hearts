@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getProductAvailability } from "@/lib/product-stock";
+import { mpPaymentRefund } from "@/lib/mercadopago";
 import type { Prisma } from "@prisma/client";
 
 interface MpPaymentData {
@@ -16,10 +17,11 @@ interface MpPaymentData {
  * (cartão) quanto pelo webhook/polling (pix/boleto) sem duplicar o efeito.
  *
  * Pedidos EXPIRED (a reserva estourou o prazo antes do pagamento confirmar)
- * ainda são aceitos aqui: o cliente pode ter pago de verdade só depois da
- * janela de reserva fechar, e nesse caso o estoque reservado já foi
- * devolvido pela expiração — então só soma em "vendido", sem decrementar
- * "reservado" de novo.
+ * são olhados aqui só pra poder estornar: assim que a reserva expira o
+ * estoque já volta a ficar disponível pra qualquer outra pessoa, então um
+ * pagamento aprovado depois disso nunca vira venda (senão dá pra vender a
+ * mesma unidade duas vezes) — o dinheiro é devolvido automaticamente no
+ * Mercado Pago em vez de confirmar o pedido.
  */
 export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentData) {
   const order = await prisma.order.findUnique({
@@ -34,7 +36,34 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
   const mpStatus = mpData.status;
   const mpMethod = mpData.payment_type_id ?? mpData.payment_method_id;
 
-  if (mpStatus === "approved") {
+  if (mpStatus === "approved" && wasExpired) {
+    try {
+      await mpPaymentRefund.total({ payment_id: Number(mpData.id) });
+      await prisma.payment.update({
+        where: { orderId: order.id },
+        data: {
+          status: "REFUNDED",
+          gatewayId: String(mpData.id),
+          method: mpMethod,
+          gatewayResponse: mpData as object,
+        },
+      });
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "REFUNDED" },
+      });
+    } catch (err) {
+      console.error(`[finalize-payment] Falha ao estornar pagamento expirado do pedido ${order.id}:`, err);
+      // guarda o retorno do MP mesmo com o estorno falhando, pra dar pra
+      // conferir/estornar manualmente depois — não pode ficar sem rastro.
+      await prisma.payment
+        .update({
+          where: { orderId: order.id },
+          data: { gatewayId: String(mpData.id), method: mpMethod, gatewayResponse: mpData as object },
+        })
+        .catch(() => {});
+    }
+  } else if (mpStatus === "approved") {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.payment.update({
         where: { orderId: order.id },
@@ -57,12 +86,10 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
         data: { status: "CONVERTED" },
       });
 
-      const stockDelta = wasExpired
-        ? { quantitySold: { increment: order.reservation.quantity } }
-        : {
-            quantityReserved: { decrement: order.reservation.quantity },
-            quantitySold: { increment: order.reservation.quantity },
-          };
+      const stockDelta = {
+        quantityReserved: { decrement: order.reservation.quantity },
+        quantitySold: { increment: order.reservation.quantity },
+      };
 
       if (order.reservation.productVariantId) {
         await tx.productVariant.update({

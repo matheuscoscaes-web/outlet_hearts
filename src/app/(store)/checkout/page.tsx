@@ -44,6 +44,7 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [pixExpired, setPixExpired] = useState(false);
   const [error, setError] = useState("");
   const [paymentError, setPaymentError] = useState("");
 
@@ -274,6 +275,9 @@ function CheckoutContent() {
       if (data.status === "PAID") {
         clearInterval(poll);
         router.push(`/pedido/aprovado?orderId=${orderId}`);
+      } else if (data.status === "EXPIRED" || data.status === "REFUNDED") {
+        clearInterval(poll);
+        setPixExpired(true);
       }
     }, 3000);
 
@@ -291,6 +295,20 @@ function CheckoutContent() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (pixExpired) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <p className="text-5xl mb-4">⏰</p>
+        <h2 className="text-xl font-bold text-gray-900">Reserva expirada</h2>
+        <p className="text-gray-500 mt-2 mb-6">
+          O tempo de reserva se encerrou antes da confirmação do pagamento e o produto voltou ao
+          estoque. Se o pagamento chegou a ser aprovado, o valor será estornado automaticamente.
+        </p>
+        <Button onClick={() => router.push("/")}>Ver produtos disponíveis</Button>
       </div>
     );
   }
