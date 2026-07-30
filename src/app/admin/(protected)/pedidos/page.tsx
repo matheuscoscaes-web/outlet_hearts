@@ -4,6 +4,7 @@ import Link from "next/link";
 import { OrderAddressModal } from "@/components/admin/OrderAddressModal";
 import { ShippingLabelButton } from "@/components/admin/ShippingLabelButton";
 import { MarkShippedButton } from "@/components/admin/MarkShippedButton";
+import { ReconcilePaymentsButton } from "@/components/admin/ReconcilePaymentsButton";
 import type { Order, OrderItem, Product, ProductImage, Payment } from "@prisma/client";
 
 export const revalidate = 0;
@@ -57,7 +58,10 @@ export default async function AdminOrdersPage({
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Pedidos</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Pedidos</h1>
+        <ReconcilePaymentsButton />
+      </div>
 
       <div className="flex gap-2 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => (

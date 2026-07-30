@@ -167,3 +167,43 @@ export async function finalizeOrderPayment(orderId: string, mpData: MpPaymentDat
     });
   }
 }
+
+/**
+ * Reverte um pedido CANCELLED cujo pagamento, ao reconsultar o Mercado Pago,
+ * aparece como aprovado — cobre o caso de uma aprovação de pix/boleto que
+ * chegou depois de uma rejeição anterior já ter cancelado o pedido (a rota de
+ * webhook ignora esse evento tardio porque só processa pedidos PENDING/EXPIRED).
+ *
+ * Só troca o status do pedido/pagamento: não mexe em reserva nem em estoque,
+ * já que ambos já foram liberados quando o pedido foi cancelado e o item pode
+ * já ter sido vendido para outra pessoa — quem aciona a reconciliação manual
+ * precisa conferir a disponibilidade antes de expedir.
+ */
+export async function recoverCancelledPayment(orderId: string, mpData: MpPaymentData) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { payment: true },
+  });
+
+  if (!order || order.status !== "CANCELLED") return false;
+  if (mpData.status !== "approved") return false;
+
+  await prisma.$transaction([
+    prisma.payment.update({
+      where: { orderId: order.id },
+      data: {
+        status: "APPROVED",
+        gatewayId: String(mpData.id),
+        method: mpData.payment_type_id ?? mpData.payment_method_id,
+        gatewayResponse: mpData as object,
+        paidAt: new Date(),
+      },
+    }),
+    prisma.order.update({
+      where: { id: order.id },
+      data: { status: "PAID" },
+    }),
+  ]);
+
+  return true;
+}
